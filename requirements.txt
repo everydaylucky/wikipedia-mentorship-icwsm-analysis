@@ -1,0 +1,30 @@
+# Python 3.11. The versions below are the ones tested in the 2026-10 development environment (wiki_env).
+numpy>=2.0
+pandas>=2.3
+pyarrow>=21.0
+scipy>=1.16
+scikit-learn>=1.6
+statsmodels>=0.14
+matplotlib>=3.10
+pyyaml>=6.0
+tqdm>=4.67
+pytest>=9.0
+orjson>=3.11               # fast JSON reading of the s6 activity files (M3)
+requests>=2.32             # Perspective API (M6)
+
+# Text processing (decisions D5, D6, D9)
+mwparserfromhell>=0.7      # wikitext parsing (R4.5, R4.6)
+convokit>=3.0              # politeness strategies, PolitenessStrategies (D6)
+spacy>=3.8                 # UD morphology and dependency parsing (pronouns, imperatives); also run: python -m spacy download en_core_web_sm
+textstat>=0.7              # readability scores such as Flesch-Kincaid
+fasttext-wheel>=0.9.2      # language detection with lid.176.bin (D5); the model file is downloaded separately
+langdetect>=1.0.9          # second language detector, kept only as a comparison column (D5)
+vaderSentiment>=3.3
+textblob>=0.17
+
+# Outside services
+openai>=2.0                # DeepSeek and DashScope both offer an OpenAI-compatible API
+
+# Close reading of cases (M8.10)
+hdbscan>=0.8
+umap-learn>=0.5

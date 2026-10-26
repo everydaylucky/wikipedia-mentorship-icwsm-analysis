@@ -1,0 +1,24 @@
+# Secrets
+.env
+
+# Data and outputs: rebuilt by the pipeline or released separately (see README "Input data")
+data/raw/
+data/interim/
+data/cache/
+data/analytic/
+results/
+ledger/
+
+# Internal working notes (not part of the public release)
+PLAN.md
+PROGRESS.md
+DATA_PROCESSING.md
+CODE_PLAN.md
+paper/
+
+# Python and editors
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store

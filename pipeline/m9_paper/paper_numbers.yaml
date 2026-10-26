@@ -1,0 +1,3555 @@
+paper: 2026-9/2026-9-24/paper.md   # relative to config.WIKI_BASE
+results_root: results/
+n_entries: 354
+pending_tables:
+  tab:qtypes: M6 (shares of Q1 to Q5)
+  tab:agreement: M6 agreement.py (kappa)
+  tab:llm_full: M6 agreement.py
+  tab:iter1: M6 agreement.py
+  tab:llm_comparison: M6 (model comparison)
+  tab:sample: M5 (sample construction table)
+  tab:close_reading: M8 close_reading.py (close reading of cases)
+numbers:
+- id: att.1+_mainspace_edit_14d.naive
+  where: Table 4 (tab:att), row 1+ edit (14d), Naive
+  paper: +.036
+  value: 0.036
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'''
+  column: Naive
+  scale: 1.0
+- id: att.1+_mainspace_edit_14d.att
+  where: Table 4 (tab:att), row 1+ edit (14d), ATT
+  paper: +.017
+  value: 0.017
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'''
+  column: ATT
+  scale: 1.0
+- id: att.1+_mainspace_edit_14d.ci_lo
+  where: Table 4 (tab:att), row 1+ edit (14d), CI low
+  paper: +.006
+  value: 0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: att.1+_mainspace_edit_14d.ci_hi
+  where: Table 4 (tab:att), row 1+ edit (14d), CI high
+  paper: +.028
+  value: 0.028
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: att.n_mainspace_edits_14d.naive
+  where: Table 4 (tab:att), row N edits (14d), Naive
+  paper: '+1.24'
+  value: 1.24
+  kind: value
+  tol: 0.005000000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''n_mainspace_edits_14d'''
+  column: Naive
+  scale: 1.0
+- id: att.n_mainspace_edits_14d.att
+  where: Table 4 (tab:att), row N edits (14d), ATT
+  paper: +.534
+  value: 0.534
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''n_mainspace_edits_14d'''
+  column: ATT
+  scale: 1.0
+- id: att.n_mainspace_edits_14d.ci_lo
+  where: Table 4 (tab:att), row N edits (14d), CI low
+  paper: -.333
+  value: -0.333
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''n_mainspace_edits_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: att.n_mainspace_edits_14d.ci_hi
+  where: Table 4 (tab:att), row N edits (14d), CI high
+  paper: '+1.35'
+  value: 1.35
+  kind: value
+  tol: 0.005000000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''n_mainspace_edits_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: att.unique_namespace_14d.naive
+  where: Table 4 (tab:att), row Unique NS (14d), Naive
+  paper: +.062
+  value: 0.062
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''unique_namespace_14d'''
+  column: Naive
+  scale: 1.0
+- id: att.unique_namespace_14d.att
+  where: Table 4 (tab:att), row Unique NS (14d), ATT
+  paper: +.025
+  value: 0.025
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''unique_namespace_14d'''
+  column: ATT
+  scale: 1.0
+- id: att.unique_namespace_14d.ci_lo
+  where: Table 4 (tab:att), row Unique NS (14d), CI low
+  paper: +.005
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''unique_namespace_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: att.unique_namespace_14d.ci_hi
+  where: Table 4 (tab:att), row Unique NS (14d), CI high
+  paper: +.045
+  value: 0.045
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''unique_namespace_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: att.2+_active_days_14d.naive
+  where: Table 4 (tab:att), row 2+ active days (14d), Naive
+  paper: +.023
+  value: 0.023
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''2+_active_days_14d'''
+  column: Naive
+  scale: 1.0
+- id: att.2+_active_days_14d.att
+  where: Table 4 (tab:att), row 2+ active days (14d), ATT
+  paper: +.015
+  value: 0.015
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''2+_active_days_14d'''
+  column: ATT
+  scale: 1.0
+- id: att.2+_active_days_14d.ci_lo
+  where: Table 4 (tab:att), row 2+ active days (14d), CI low
+  paper: +.007
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''2+_active_days_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: att.2+_active_days_14d.ci_hi
+  where: Table 4 (tab:att), row 2+ active days (14d), CI high
+  paper: +.022
+  value: 0.022
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''2+_active_days_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: att.active_days_30d.naive
+  where: Table 4 (tab:att), row Active days (30d), Naive
+  paper: +.245
+  value: 0.245
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''active_days_30d'''
+  column: Naive
+  scale: 1.0
+- id: att.active_days_30d.att
+  where: Table 4 (tab:att), row Active days (30d), ATT
+  paper: +.085
+  value: 0.085
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''active_days_30d'''
+  column: ATT
+  scale: 1.0
+- id: att.active_days_30d.ci_lo
+  where: Table 4 (tab:att), row Active days (30d), CI low
+  paper: -.010
+  value: -0.01
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''active_days_30d'''
+  column: CI_lo
+  scale: 1.0
+- id: att.active_days_30d.ci_hi
+  where: Table 4 (tab:att), row Active days (30d), CI high
+  paper: +.179
+  value: 0.179
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''active_days_30d'''
+  column: CI_hi
+  scale: 1.0
+- id: att.reverted_any_14d.naive
+  where: Table 4 (tab:att), row Reverted (14d), Naive
+  paper: +.011
+  value: 0.011
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''reverted_any_14d'''
+  column: Naive
+  scale: 1.0
+- id: att.reverted_any_14d.att
+  where: Table 4 (tab:att), row Reverted (14d), ATT
+  paper: +.005
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''reverted_any_14d'''
+  column: ATT
+  scale: 1.0
+- id: att.reverted_any_14d.ci_lo
+  where: Table 4 (tab:att), row Reverted (14d), CI low
+  paper: -.002
+  value: -0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''reverted_any_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: att.reverted_any_14d.ci_hi
+  where: Table 4 (tab:att), row Reverted (14d), CI high
+  paper: +.013
+  value: 0.013
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/B_main_results.csv
+  query: '`Outcome` == ''reverted_any_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: strata.K5.att
+  where: Appendix tab:strata_sens, K=5
+  paper: '+0.0174'
+  value: 0.0174
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C1_strata_sensitivity.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'' and `Strata` == 5'
+  column: ATT
+  scale: 1.0
+- id: strata.K5.ci_lo
+  where: Appendix tab:strata_sens, K=5 CI low
+  paper: +.007
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C1_strata_sensitivity.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'' and `Strata` == 5'
+  column: CI_lo
+  scale: 1.0
+- id: strata.K5.ci_hi
+  where: Appendix tab:strata_sens, K=5 CI high
+  paper: +.027
+  value: 0.027
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C1_strata_sensitivity.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'' and `Strata` == 5'
+  column: CI_hi
+  scale: 1.0
+- id: strata.K10.att
+  where: Appendix tab:strata_sens, K=10
+  paper: '+0.0165'
+  value: 0.0165
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C1_strata_sensitivity.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'' and `Strata` == 10'
+  column: ATT
+  scale: 1.0
+- id: strata.K10.ci_lo
+  where: Appendix tab:strata_sens, K=10 CI low
+  paper: +.006
+  value: 0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C1_strata_sensitivity.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'' and `Strata` == 10'
+  column: CI_lo
+  scale: 1.0
+- id: strata.K10.ci_hi
+  where: Appendix tab:strata_sens, K=10 CI high
+  paper: +.027
+  value: 0.027
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C1_strata_sensitivity.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'' and `Strata` == 10'
+  column: CI_hi
+  scale: 1.0
+- id: strata.K20.att
+  where: Appendix tab:strata_sens, K=20
+  paper: '+0.0159'
+  value: 0.0159
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C1_strata_sensitivity.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'' and `Strata` == 20'
+  column: ATT
+  scale: 1.0
+- id: strata.K20.ci_lo
+  where: Appendix tab:strata_sens, K=20 CI low
+  paper: +.005
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C1_strata_sensitivity.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'' and `Strata` == 20'
+  column: CI_lo
+  scale: 1.0
+- id: strata.K20.ci_hi
+  where: Appendix tab:strata_sens, K=20 CI high
+  paper: +.026
+  value: 0.026
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C1_strata_sensitivity.csv
+  query: '`Outcome` == ''1+_mainspace_edit_14d'' and `Strata` == 20'
+  column: CI_hi
+  scale: 1.0
+- id: ablation.Full model.p
+  where: Appendix tab:ablation, Full model, Feat.
+  paper: '164'
+  value: 164.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full model (E+Qtext+Qpersp+Qtype+Emb+T)'''
+  column: p
+  scale: 1.0
+- id: ablation.Full model.auc
+  where: Appendix tab:ablation, Full model, AUC
+  paper: '0.618'
+  value: 0.618
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full model (E+Qtext+Qpersp+Qtype+Emb+T)'''
+  column: AUC
+  scale: 1.0
+- id: ablation.Full model.att
+  where: Appendix tab:ablation, Full model, ATT
+  paper: +.017
+  value: 0.017
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full model (E+Qtext+Qpersp+Qtype+Emb+T)'''
+  column: ATT
+  scale: 1.0
+- id: ablation.Full - Qtype.p
+  where: Appendix tab:ablation, Full - Qtype, Feat.
+  paper: '159'
+  value: 159.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – Qtype (no LLM annotation)'''
+  column: p
+  scale: 1.0
+- id: ablation.Full - Qtype.auc
+  where: Appendix tab:ablation, Full - Qtype, AUC
+  paper: '0.613'
+  value: 0.613
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – Qtype (no LLM annotation)'''
+  column: AUC
+  scale: 1.0
+- id: ablation.Full - Qtype.att
+  where: Appendix tab:ablation, Full - Qtype, ATT
+  paper: +.018
+  value: 0.018
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – Qtype (no LLM annotation)'''
+  column: ATT
+  scale: 1.0
+- id: ablation.Full - temporal.p
+  where: Appendix tab:ablation, Full - temporal, Feat.
+  paper: '104'
+  value: 104.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – temporal'''
+  column: p
+  scale: 1.0
+- id: ablation.Full - temporal.auc
+  where: Appendix tab:ablation, Full - temporal, AUC
+  paper: '0.601'
+  value: 0.601
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – temporal'''
+  column: AUC
+  scale: 1.0
+- id: ablation.Full - temporal.att
+  where: Appendix tab:ablation, Full - temporal, ATT
+  paper: +.016
+  value: 0.016
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – temporal'''
+  column: ATT
+  scale: 1.0
+- id: ablation.Full - embeddings.p
+  where: Appendix tab:ablation, Full - embeddings, Feat.
+  paper: '144'
+  value: 144.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – embeddings'''
+  column: p
+  scale: 1.0
+- id: ablation.Full - embeddings.auc
+  where: Appendix tab:ablation, Full - embeddings, AUC
+  paper: '0.615'
+  value: 0.615
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – embeddings'''
+  column: AUC
+  scale: 1.0
+- id: ablation.Full - embeddings.att
+  where: Appendix tab:ablation, Full - embeddings, ATT
+  paper: +.017
+  value: 0.017
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – embeddings'''
+  column: ATT
+  scale: 1.0
+- id: ablation.Full - Qtext.p
+  where: Appendix tab:ablation, Full - Qtext, Feat.
+  paper: '127'
+  value: 127.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – Qtext'''
+  column: p
+  scale: 1.0
+- id: ablation.Full - Qtext.auc
+  where: Appendix tab:ablation, Full - Qtext, AUC
+  paper: '0.616'
+  value: 0.616
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – Qtext'''
+  column: AUC
+  scale: 1.0
+- id: ablation.Full - Qtext.att
+  where: Appendix tab:ablation, Full - Qtext, ATT
+  paper: +.017
+  value: 0.017
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full – Qtext'''
+  column: ATT
+  scale: 1.0
+- id: ablation.Edit history only.p
+  where: Appendix tab:ablation, Edit history only, Feat.
+  paper: '34'
+  value: 34.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Edit history only'''
+  column: p
+  scale: 1.0
+- id: ablation.Edit history only.auc
+  where: Appendix tab:ablation, Edit history only, AUC
+  paper: '0.537'
+  value: 0.537
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Edit history only'''
+  column: AUC
+  scale: 1.0
+- id: ablation.Edit history only.att
+  where: Appendix tab:ablation, Edit history only, ATT
+  paper: +.023
+  value: 0.023
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Edit history only'''
+  column: ATT
+  scale: 1.0
+- id: ablation.Question feat. only.p
+  where: Appendix tab:ablation, Question feat. only, Feat.
+  paper: '50'
+  value: 50.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Question features only (Qtext+Qpersp+Qtype)'''
+  column: p
+  scale: 1.0
+- id: ablation.Question feat. only.auc
+  where: Appendix tab:ablation, Question feat. only, AUC
+  paper: '0.595'
+  value: 0.595
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Question features only (Qtext+Qpersp+Qtype)'''
+  column: AUC
+  scale: 1.0
+- id: ablation.Question feat. only.att
+  where: Appendix tab:ablation, Question feat. only, ATT
+  paper: +.017
+  value: 0.017
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Question features only (Qtext+Qpersp+Qtype)'''
+  column: ATT
+  scale: 1.0
+- id: ablation.Qtype only.p
+  where: Appendix tab:ablation, Qtype only, Feat.
+  paper: '5'
+  value: 5.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Qtype only'''
+  column: p
+  scale: 1.0
+- id: ablation.Qtype only.auc
+  where: Appendix tab:ablation, Qtype only, AUC
+  paper: '0.581'
+  value: 0.581
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Qtype only'''
+  column: AUC
+  scale: 1.0
+- id: ablation.Qtype only.att
+  where: Appendix tab:ablation, Qtype only, ATT
+  paper: +.019
+  value: 0.019
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Qtype only'''
+  column: ATT
+  scale: 1.0
+- id: ablation.Full + mentor.p
+  where: Appendix tab:ablation, Full + mentor, Feat.
+  paper: '170'
+  value: 170.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full + mentor features'''
+  column: p
+  scale: 1.0
+- id: ablation.Full + mentor.auc
+  where: Appendix tab:ablation, Full + mentor, AUC
+  paper: '0.796'
+  value: 0.796
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full + mentor features'''
+  column: AUC
+  scale: 1.0
+- id: ablation.Full + mentor.att
+  where: Appendix tab:ablation, Full + mentor, ATT
+  paper: +.007
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full + mentor features'''
+  column: ATT
+  scale: 1.0
+- id: trim.[0.01,0.99].n
+  where: Appendix tab:trimming, [0.01,0.99], N trimmed
+  paper: '11'
+  value: 11.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/C3_ps_trimming.csv
+  query: '`Range` == ''[0.01,0.99]'''
+  column: Trimmed
+  scale: 1.0
+- id: trim.[0.01,0.99].att
+  where: Appendix tab:trimming, [0.01,0.99], ATT
+  paper: '+0.0172'
+  value: 0.0172
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C3_ps_trimming.csv
+  query: '`Range` == ''[0.01,0.99]'''
+  column: ATT
+  scale: 1.0
+- id: trim.[0.05,0.95].n
+  where: Appendix tab:trimming, [0.05,0.95], N trimmed
+  paper: '22'
+  value: 22.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/C3_ps_trimming.csv
+  query: '`Range` == ''[0.05,0.95]'''
+  column: Trimmed
+  scale: 1.0
+- id: trim.[0.05,0.95].att
+  where: Appendix tab:trimming, [0.05,0.95], ATT
+  paper: '+0.0174'
+  value: 0.0174
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C3_ps_trimming.csv
+  query: '`Range` == ''[0.05,0.95]'''
+  column: ATT
+  scale: 1.0
+- id: trim.[0.1,0.9].n
+  where: Appendix tab:trimming, [0.1,0.9], N trimmed
+  paper: '172'
+  value: 172.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/C3_ps_trimming.csv
+  query: '`Range` == ''[0.1,0.9]'''
+  column: Trimmed
+  scale: 1.0
+- id: trim.[0.1,0.9].att
+  where: Appendix tab:trimming, [0.1,0.9], ATT
+  paper: '+0.0179'
+  value: 0.0179
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C3_ps_trimming.csv
+  query: '`Range` == ''[0.1,0.9]'''
+  column: ATT
+  scale: 1.0
+- id: trim.[0.15,0.85].n
+  where: Appendix tab:trimming, [0.15,0.85], N trimmed
+  paper: 2,522
+  value: 2522.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/C3_ps_trimming.csv
+  query: '`Range` == ''[0.15,0.85]'''
+  column: Trimmed
+  scale: 1.0
+- id: trim.[0.15,0.85].att
+  where: Appendix tab:trimming, [0.15,0.85], ATT
+  paper: '+0.0169'
+  value: 0.0169
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C3_ps_trimming.csv
+  query: '`Range` == ''[0.15,0.85]'''
+  column: ATT
+  scale: 1.0
+- id: window.7.att
+  where: Appendix tab:window, 7 days
+  paper: '+0.0146'
+  value: 0.0146
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 7'
+  column: ATT
+  scale: 1.0
+- id: window.7.ci_lo
+  where: Appendix tab:window, 7 days CI low
+  paper: +.005
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 7'
+  column: CI_lo
+  scale: 1.0
+- id: window.7.ci_hi
+  where: Appendix tab:window, 7 days CI high
+  paper: +.024
+  value: 0.024
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 7'
+  column: CI_hi
+  scale: 1.0
+- id: window.14.att
+  where: Appendix tab:window, 14 days
+  paper: '+0.0165'
+  value: 0.0165
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 14'
+  column: ATT
+  scale: 1.0
+- id: window.14.ci_lo
+  where: Appendix tab:window, 14 days CI low
+  paper: +.006
+  value: 0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 14'
+  column: CI_lo
+  scale: 1.0
+- id: window.14.ci_hi
+  where: Appendix tab:window, 14 days CI high
+  paper: +.026
+  value: 0.026
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 14'
+  column: CI_hi
+  scale: 1.0
+- id: window.21.att
+  where: Appendix tab:window, 21 days
+  paper: '+0.0174'
+  value: 0.0174
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 21'
+  column: ATT
+  scale: 1.0
+- id: window.21.ci_lo
+  where: Appendix tab:window, 21 days CI low
+  paper: +.007
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 21'
+  column: CI_lo
+  scale: 1.0
+- id: window.21.ci_hi
+  where: Appendix tab:window, 21 days CI high
+  paper: +.027
+  value: 0.027
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 21'
+  column: CI_hi
+  scale: 1.0
+- id: window.28.att
+  where: Appendix tab:window, 28 days
+  paper: '+0.0166'
+  value: 0.0166
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 28'
+  column: ATT
+  scale: 1.0
+- id: window.28.ci_lo
+  where: Appendix tab:window, 28 days CI low
+  paper: +.005
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 28'
+  column: CI_lo
+  scale: 1.0
+- id: window.28.ci_hi
+  where: Appendix tab:window, 28 days CI high
+  paper: +.029
+  value: 0.029
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 28'
+  column: CI_hi
+  scale: 1.0
+- id: window.30.att
+  where: Appendix tab:window, 30 days
+  paper: '+0.0157'
+  value: 0.0157
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 30'
+  column: ATT
+  scale: 1.0
+- id: window.30.ci_lo
+  where: Appendix tab:window, 30 days CI low
+  paper: +.004
+  value: 0.004
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 30'
+  column: CI_lo
+  scale: 1.0
+- id: window.30.ci_hi
+  where: Appendix tab:window, 30 days CI high
+  paper: +.026
+  value: 0.026
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 30'
+  column: CI_hi
+  scale: 1.0
+- id: window.60.att
+  where: Appendix tab:window, 60 days
+  paper: '+0.0158'
+  value: 0.0158
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 60'
+  column: ATT
+  scale: 1.0
+- id: window.60.ci_lo
+  where: Appendix tab:window, 60 days CI low
+  paper: +.005
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 60'
+  column: CI_lo
+  scale: 1.0
+- id: window.60.ci_hi
+  where: Appendix tab:window, 60 days CI high
+  paper: +.027
+  value: 0.027
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 60'
+  column: CI_hi
+  scale: 1.0
+- id: window.180.att
+  where: Appendix tab:window, 180 days
+  paper: '+0.0160'
+  value: 0.016
+  kind: value
+  tol: 5.0000001e-05
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 180'
+  column: ATT
+  scale: 1.0
+- id: window.180.ci_lo
+  where: Appendix tab:window, 180 days CI low
+  paper: +.005
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 180'
+  column: CI_lo
+  scale: 1.0
+- id: window.180.ci_hi
+  where: Appendix tab:window, 180 days CI high
+  paper: +.028
+  value: 0.028
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C4_window_sensitivity.csv
+  query: '`window` == 180'
+  column: CI_hi
+  scale: 1.0
+- id: strata_detail.0.N
+  where: Appendix tab:strata_details, stratum 0, N
+  paper: 3,539
+  value: 3539.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 0'
+  column: N
+  scale: 1.0
+- id: strata_detail.0.Treated
+  where: Appendix tab:strata_details, stratum 0, Treated
+  paper: 1,934
+  value: 1934.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 0'
+  column: Treated
+  scale: 1.0
+- id: strata_detail.0.Control
+  where: Appendix tab:strata_details, stratum 0, Control
+  paper: 1,605
+  value: 1605.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 0'
+  column: Control
+  scale: 1.0
+- id: strata_detail.0.ps_hi
+  where: Appendix tab:strata_details, stratum 0, PS high
+  paper: '0.600'
+  value: 0.6
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 0'
+  column: PS_hi
+  scale: 1.0
+- id: strata_detail.1.N
+  where: Appendix tab:strata_details, stratum 1, N
+  paper: 3,538
+  value: 3538.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 1'
+  column: N
+  scale: 1.0
+- id: strata_detail.1.Treated
+  where: Appendix tab:strata_details, stratum 1, Treated
+  paper: 2,277
+  value: 2277.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 1'
+  column: Treated
+  scale: 1.0
+- id: strata_detail.1.Control
+  where: Appendix tab:strata_details, stratum 1, Control
+  paper: 1,261
+  value: 1261.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 1'
+  column: Control
+  scale: 1.0
+- id: strata_detail.1.ps_hi
+  where: Appendix tab:strata_details, stratum 1, PS high
+  paper: '0.672'
+  value: 0.672
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 1'
+  column: PS_hi
+  scale: 1.0
+- id: strata_detail.2.N
+  where: Appendix tab:strata_details, stratum 2, N
+  paper: 3,538
+  value: 3538.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 2'
+  column: N
+  scale: 1.0
+- id: strata_detail.2.Treated
+  where: Appendix tab:strata_details, stratum 2, Treated
+  paper: 2,474
+  value: 2474.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 2'
+  column: Treated
+  scale: 1.0
+- id: strata_detail.2.Control
+  where: Appendix tab:strata_details, stratum 2, Control
+  paper: 1,064
+  value: 1064.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 2'
+  column: Control
+  scale: 1.0
+- id: strata_detail.2.ps_hi
+  where: Appendix tab:strata_details, stratum 2, PS high
+  paper: '0.717'
+  value: 0.717
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 2'
+  column: PS_hi
+  scale: 1.0
+- id: strata_detail.3.N
+  where: Appendix tab:strata_details, stratum 3, N
+  paper: 3,538
+  value: 3538.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 3'
+  column: N
+  scale: 1.0
+- id: strata_detail.3.Treated
+  where: Appendix tab:strata_details, stratum 3, Treated
+  paper: 2,638
+  value: 2638.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 3'
+  column: Treated
+  scale: 1.0
+- id: strata_detail.3.Control
+  where: Appendix tab:strata_details, stratum 3, Control
+  paper: '900'
+  value: 900.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 3'
+  column: Control
+  scale: 1.0
+- id: strata_detail.3.ps_hi
+  where: Appendix tab:strata_details, stratum 3, PS high
+  paper: '0.746'
+  value: 0.746
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 3'
+  column: PS_hi
+  scale: 1.0
+- id: strata_detail.4.N
+  where: Appendix tab:strata_details, stratum 4, N
+  paper: 3,538
+  value: 3538.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 4'
+  column: N
+  scale: 1.0
+- id: strata_detail.4.Treated
+  where: Appendix tab:strata_details, stratum 4, Treated
+  paper: 2,719
+  value: 2719.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 4'
+  column: Treated
+  scale: 1.0
+- id: strata_detail.4.Control
+  where: Appendix tab:strata_details, stratum 4, Control
+  paper: '819'
+  value: 819.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 4'
+  column: Control
+  scale: 1.0
+- id: strata_detail.4.ps_hi
+  where: Appendix tab:strata_details, stratum 4, PS high
+  paper: '0.767'
+  value: 0.767
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 4'
+  column: PS_hi
+  scale: 1.0
+- id: strata_detail.5.N
+  where: Appendix tab:strata_details, stratum 5, N
+  paper: 3,538
+  value: 3538.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 5'
+  column: N
+  scale: 1.0
+- id: strata_detail.5.Treated
+  where: Appendix tab:strata_details, stratum 5, Treated
+  paper: 2,744
+  value: 2744.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 5'
+  column: Treated
+  scale: 1.0
+- id: strata_detail.5.Control
+  where: Appendix tab:strata_details, stratum 5, Control
+  paper: '794'
+  value: 794.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 5'
+  column: Control
+  scale: 1.0
+- id: strata_detail.5.ps_hi
+  where: Appendix tab:strata_details, stratum 5, PS high
+  paper: '0.785'
+  value: 0.785
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 5'
+  column: PS_hi
+  scale: 1.0
+- id: strata_detail.6.N
+  where: Appendix tab:strata_details, stratum 6, N
+  paper: 3,538
+  value: 3538.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 6'
+  column: N
+  scale: 1.0
+- id: strata_detail.6.Treated
+  where: Appendix tab:strata_details, stratum 6, Treated
+  paper: 2,839
+  value: 2839.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 6'
+  column: Treated
+  scale: 1.0
+- id: strata_detail.6.Control
+  where: Appendix tab:strata_details, stratum 6, Control
+  paper: '699'
+  value: 699.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 6'
+  column: Control
+  scale: 1.0
+- id: strata_detail.6.ps_hi
+  where: Appendix tab:strata_details, stratum 6, PS high
+  paper: '0.802'
+  value: 0.802
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 6'
+  column: PS_hi
+  scale: 1.0
+- id: strata_detail.7.N
+  where: Appendix tab:strata_details, stratum 7, N
+  paper: 3,538
+  value: 3538.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 7'
+  column: N
+  scale: 1.0
+- id: strata_detail.7.Treated
+  where: Appendix tab:strata_details, stratum 7, Treated
+  paper: 2,807
+  value: 2807.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 7'
+  column: Treated
+  scale: 1.0
+- id: strata_detail.7.Control
+  where: Appendix tab:strata_details, stratum 7, Control
+  paper: '731'
+  value: 731.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 7'
+  column: Control
+  scale: 1.0
+- id: strata_detail.7.ps_hi
+  where: Appendix tab:strata_details, stratum 7, PS high
+  paper: '0.819'
+  value: 0.819
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 7'
+  column: PS_hi
+  scale: 1.0
+- id: strata_detail.8.N
+  where: Appendix tab:strata_details, stratum 8, N
+  paper: 3,538
+  value: 3538.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 8'
+  column: N
+  scale: 1.0
+- id: strata_detail.8.Treated
+  where: Appendix tab:strata_details, stratum 8, Treated
+  paper: 2,888
+  value: 2888.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 8'
+  column: Treated
+  scale: 1.0
+- id: strata_detail.8.Control
+  where: Appendix tab:strata_details, stratum 8, Control
+  paper: '650'
+  value: 650.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 8'
+  column: Control
+  scale: 1.0
+- id: strata_detail.8.ps_hi
+  where: Appendix tab:strata_details, stratum 8, PS high
+  paper: '0.841'
+  value: 0.841
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 8'
+  column: PS_hi
+  scale: 1.0
+- id: strata_detail.9.N
+  where: Appendix tab:strata_details, stratum 9, N
+  paper: 3,538
+  value: 3538.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 9'
+  column: N
+  scale: 1.0
+- id: strata_detail.9.Treated
+  where: Appendix tab:strata_details, stratum 9, Treated
+  paper: 2,958
+  value: 2958.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 9'
+  column: Treated
+  scale: 1.0
+- id: strata_detail.9.Control
+  where: Appendix tab:strata_details, stratum 9, Control
+  paper: '580'
+  value: 580.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 9'
+  column: Control
+  scale: 1.0
+- id: strata_detail.9.ps_hi
+  where: Appendix tab:strata_details, stratum 9, PS high
+  paper: '1.000'
+  value: 1.0
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A3_strata_diagnostics.csv
+  query: '`Stratum` == 9'
+  column: PS_hi
+  scale: 1.0
+- id: subgroup.Full sample.N
+  where: Table 5 (tab:subgroup), Full sample, N
+  paper: 35,381
+  value: 35381.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Full sample'' and `Outcome` == ''1+_mainspace_14d'''
+  column: N
+  scale: 1.0
+- id: subgroup.Full sample.att
+  where: Table 5 (tab:subgroup), Full sample, ATT
+  paper: +.020
+  value: 0.02
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Full sample'' and `Outcome` == ''1+_mainspace_14d'''
+  column: ATT
+  scale: 1.0
+- id: subgroup.Full sample.ci_lo
+  where: Table 5 (tab:subgroup), Full sample, CI low
+  paper: +.012
+  value: 0.012
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Full sample'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: subgroup.Full sample.ci_hi
+  where: Table 5 (tab:subgroup), Full sample, CI high
+  paper: +.030
+  value: 0.03
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Full sample'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: subgroup.Technical.N
+  where: Table 5 (tab:subgroup), Technical, N
+  paper: 16,444
+  value: 16444.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Technical'' and `Outcome` == ''1+_mainspace_14d'''
+  column: N
+  scale: 1.0
+- id: subgroup.Technical.att
+  where: Table 5 (tab:subgroup), Technical, ATT
+  paper: +.024
+  value: 0.024
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Technical'' and `Outcome` == ''1+_mainspace_14d'''
+  column: ATT
+  scale: 1.0
+- id: subgroup.Technical.ci_lo
+  where: Table 5 (tab:subgroup), Technical, CI low
+  paper: +.009
+  value: 0.009
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Technical'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: subgroup.Technical.ci_hi
+  where: Table 5 (tab:subgroup), Technical, CI high
+  paper: +.040
+  value: 0.04
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Technical'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: subgroup.Normative (Q4).N
+  where: Table 5 (tab:subgroup), Normative (Q4), N
+  paper: 6,385
+  value: 6385.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: N
+  scale: 1.0
+- id: subgroup.Normative (Q4).att
+  where: Table 5 (tab:subgroup), Normative (Q4), ATT
+  paper: +.018
+  value: 0.018
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: ATT
+  scale: 1.0
+- id: subgroup.Normative (Q4).ci_lo
+  where: Table 5 (tab:subgroup), Normative (Q4), CI low
+  paper: -.009
+  value: -0.009
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: subgroup.Normative (Q4).ci_hi
+  where: Table 5 (tab:subgroup), Normative (Q4), CI high
+  paper: +.049
+  value: 0.049
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: subgroup.Appraisal (Q3).N
+  where: Table 5 (tab:subgroup), Appraisal (Q3), N
+  paper: 2,006
+  value: 2006.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Appraisal (Q3)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: N
+  scale: 1.0
+- id: subgroup.Appraisal (Q3).att
+  where: Table 5 (tab:subgroup), Appraisal (Q3), ATT
+  paper: +.041
+  value: 0.041
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Appraisal (Q3)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: ATT
+  scale: 1.0
+- id: subgroup.Appraisal (Q3).ci_lo
+  where: Table 5 (tab:subgroup), Appraisal (Q3), CI low
+  paper: -.013
+  value: -0.013
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Appraisal (Q3)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: subgroup.Appraisal (Q3).ci_hi
+  where: Table 5 (tab:subgroup), Appraisal (Q3), CI high
+  paper: +.093
+  value: 0.093
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Appraisal (Q3)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: subgroup.Referent (Q2).N
+  where: Table 5 (tab:subgroup), Referent (Q2), N
+  paper: 4,641
+  value: 4641.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: N
+  scale: 1.0
+- id: subgroup.Referent (Q2).att
+  where: Table 5 (tab:subgroup), Referent (Q2), ATT
+  paper: -.000
+  value: -0.0
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: ATT
+  scale: 1.0
+- id: subgroup.Referent (Q2).ci_lo
+  where: Table 5 (tab:subgroup), Referent (Q2), CI low
+  paper: -.024
+  value: -0.024
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: subgroup.Referent (Q2).ci_hi
+  where: Table 5 (tab:subgroup), Referent (Q2), CI high
+  paper: +.029
+  value: 0.029
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: subgroup.Non-substantive.N
+  where: Table 5 (tab:subgroup), Non-substantive, N
+  paper: 7,000
+  value: 7000.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Non-substantive'' and `Outcome` == ''1+_mainspace_14d'''
+  column: N
+  scale: 1.0
+- id: subgroup.Non-substantive.att
+  where: Table 5 (tab:subgroup), Non-substantive, ATT
+  paper: -.000
+  value: -0.0
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Non-substantive'' and `Outcome` == ''1+_mainspace_14d'''
+  column: ATT
+  scale: 1.0
+- id: subgroup.Non-substantive.ci_lo
+  where: Table 5 (tab:subgroup), Non-substantive, CI low
+  paper: -.016
+  value: -0.016
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Non-substantive'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: subgroup.Non-substantive.ci_hi
+  where: Table 5 (tab:subgroup), Non-substantive, CI high
+  paper: +.015
+  value: 0.015
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Non-substantive'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: subgroup.Own work (Q5=Y).N
+  where: Table 5 (tab:subgroup), Own work (Q5=Y), N
+  paper: 8,216
+  value: 8216.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: N
+  scale: 1.0
+- id: subgroup.Own work (Q5=Y).att
+  where: Table 5 (tab:subgroup), Own work (Q5=Y), ATT
+  paper: +.033
+  value: 0.033
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: ATT
+  scale: 1.0
+- id: subgroup.Own work (Q5=Y).ci_lo
+  where: Table 5 (tab:subgroup), Own work (Q5=Y), CI low
+  paper: +.008
+  value: 0.008
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: subgroup.Own work (Q5=Y).ci_hi
+  where: Table 5 (tab:subgroup), Own work (Q5=Y), CI high
+  paper: +.056
+  value: 0.056
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: subgroup.No own work (Q5=N).N
+  where: Table 5 (tab:subgroup), No own work (Q5=N), N
+  paper: 27,165
+  value: 27165.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: N
+  scale: 1.0
+- id: subgroup.No own work (Q5=N).att
+  where: Table 5 (tab:subgroup), No own work (Q5=N), ATT
+  paper: +.016
+  value: 0.016
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: ATT
+  scale: 1.0
+- id: subgroup.No own work (Q5=N).ci_lo
+  where: Table 5 (tab:subgroup), No own work (Q5=N), CI low
+  paper: +.004
+  value: 0.004
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_lo
+  scale: 1.0
+- id: subgroup.No own work (Q5=N).ci_hi
+  where: Table 5 (tab:subgroup), No own work (Q5=N), CI high
+  paper: +.027
+  value: 0.027
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `Outcome` == ''1+_mainspace_14d'''
+  column: CI_hi
+  scale: 1.0
+- id: reply.full.Reply lag (hours).beta
+  where: Table 6 (tab:reply_full), Reply lag (hours), beta
+  paper: '-0.035'
+  value: -0.035
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''Reply lag (hours)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full.Reply lag (hours).p
+  where: Table 6 (tab:reply_full), Reply lag (hours), p
+  paper: <.001
+  value: 0.001
+  kind: lt
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''Reply lag (hours)'''
+  column: p
+  scale: 1.0
+- id: reply.full.Q-R semantic similarity.beta
+  where: Table 6 (tab:reply_full), Q--R cosine sim., beta
+  paper: '+0.017'
+  value: 0.017
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full.Q-R semantic similarity.p
+  where: Table 6 (tab:reply_full), Q--R cosine sim., p
+  paper: <.001
+  value: 0.001
+  kind: lt
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: p
+  scale: 1.0
+- id: reply.full.Positive language.beta
+  where: Table 6 (tab:reply_full), Positive language, beta
+  paper: '+0.008'
+  value: 0.008
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full.Positive language.p
+  where: Table 6 (tab:reply_full), Positive language, p
+  paper: '.026'
+  value: 0.026
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: p
+  scale: 1.0
+- id: reply.full.Question marks in reply.beta
+  where: Table 6 (tab:reply_full), Question marks, beta
+  paper: '+0.007'
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full.Question marks in reply.p
+  where: Table 6 (tab:reply_full), Question marks, p
+  paper: '.005'
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: p
+  scale: 1.0
+- id: reply.full.VADER compound sentiment.beta
+  where: Table 6 (tab:reply_full), VADER compound, beta
+  paper: '+0.007'
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full.VADER compound sentiment.p
+  where: Table 6 (tab:reply_full), VADER compound, p
+  paper: '.018'
+  value: 0.018
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: p
+  scale: 1.0
+- id: reply.full."We" rate (per word).beta
+  where: Table 6 (tab:reply_full), ``We'' rate, beta
+  paper: '-0.006'
+  value: -0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full."We" rate (per word).p
+  where: Table 6 (tab:reply_full), ``We'' rate, p
+  paper: '.006'
+  value: 0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_results.csv
+  query: '`DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: p
+  scale: 1.0
+- id: reply.sg.Technical.N
+  where: Table 7 (tab:reply_subgroup), Technical / Q--R cos. sim., N
+  paper: 12,747
+  value: 12747.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: N
+  scale: 1.0
+- id: reply.sg.Technical.Q-R semantic similarity.beta
+  where: Table 7 (tab:reply_subgroup), Technical / Q--R cos. sim., beta
+  paper: +.019
+  value: 0.019
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.Technical.Q-R semantic similarity.p
+  where: Table 7 (tab:reply_subgroup), Technical / Q--R cos. sim., p
+  paper: <.001
+  value: 0.001
+  kind: lt
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: p
+  scale: 1.0
+- id: reply.sg.Technical.N
+  where: Table 7 (tab:reply_subgroup), Technical / ``I'' rate, N
+  paper: 12,747
+  value: 12747.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''"I" rate (per word)'''
+  column: N
+  scale: 1.0
+- id: reply.sg.Technical."I" rate (per word).beta
+  where: Table 7 (tab:reply_subgroup), Technical / ``I'' rate, beta
+  paper: +.008
+  value: 0.008
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''"I" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.Technical."I" rate (per word).p
+  where: Table 7 (tab:reply_subgroup), Technical / ``I'' rate, p
+  paper: '.040'
+  value: 0.04
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''"I" rate (per word)'''
+  column: p
+  scale: 1.0
+- id: reply.sg.Technical.N
+  where: Table 7 (tab:reply_subgroup), Technical / Pos. language, N
+  paper: 12,747
+  value: 12747.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: N
+  scale: 1.0
+- id: reply.sg.Technical.Positive language.beta
+  where: Table 7 (tab:reply_subgroup), Technical / Pos. language, beta
+  paper: +.012
+  value: 0.012
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.Technical.Positive language.p
+  where: Table 7 (tab:reply_subgroup), Technical / Pos. language, p
+  paper: '.015'
+  value: 0.015
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: p
+  scale: 1.0
+- id: reply.sg.Referent (Q2).N
+  where: Table 7 (tab:reply_subgroup), Referent / Quest. marks, N
+  paper: 3,560
+  value: 3560.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: N
+  scale: 1.0
+- id: reply.sg.Referent (Q2).Question marks in reply.beta
+  where: Table 7 (tab:reply_subgroup), Referent / Quest. marks, beta
+  paper: +.020
+  value: 0.02
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.Referent (Q2).Question marks in reply.p
+  where: Table 7 (tab:reply_subgroup), Referent / Quest. marks, p
+  paper: '.005'
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: p
+  scale: 1.0
+- id: reply.sg.Non-substantive.N
+  where: Table 7 (tab:reply_subgroup), Non-subst. / Policy refs, N
+  paper: 4,240
+  value: 4240.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Policy references'''
+  column: N
+  scale: 1.0
+- id: reply.sg.Non-substantive.Policy references.beta
+  where: Table 7 (tab:reply_subgroup), Non-subst. / Policy refs, beta
+  paper: +.099
+  value: 0.099
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Policy references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.Non-substantive.Policy references.p
+  where: Table 7 (tab:reply_subgroup), Non-subst. / Policy refs, p
+  paper: '.002'
+  value: 0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Policy references'''
+  column: p
+  scale: 1.0
+- id: reply.sg.Non-substantive.N
+  where: Table 7 (tab:reply_subgroup), Non-subst. / Wikilinks, N
+  paper: 4,240
+  value: 4240.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Wikilinks'''
+  column: N
+  scale: 1.0
+- id: reply.sg.Non-substantive.Wikilinks.beta
+  where: Table 7 (tab:reply_subgroup), Non-subst. / Wikilinks, beta
+  paper: +.032
+  value: 0.032
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Wikilinks'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.Non-substantive.Wikilinks.p
+  where: Table 7 (tab:reply_subgroup), Non-subst. / Wikilinks, p
+  paper: '.025'
+  value: 0.025
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Wikilinks'''
+  column: p
+  scale: 1.0
+- id: reply.sg.Non-substantive.N
+  where: Table 7 (tab:reply_subgroup), Non-subst. / Resource links, N
+  paper: 4,240
+  value: 4240.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Resource links (total)'''
+  column: N
+  scale: 1.0
+- id: reply.sg.Non-substantive.Resource links (total).beta
+  where: Table 7 (tab:reply_subgroup), Non-subst. / Resource links, beta
+  paper: -.092
+  value: -0.092
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Resource links (total)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.Non-substantive.Resource links (total).p
+  where: Table 7 (tab:reply_subgroup), Non-subst. / Resource links, p
+  paper: '.010'
+  value: 0.01
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Resource links (total)'''
+  column: p
+  scale: 1.0
+- id: reply.sg.Own work (Q5=Y).N
+  where: Table 7 (tab:reply_subgroup), Q5=Y / Q--R cos. sim., N
+  paper: 6,296
+  value: 6296.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: N
+  scale: 1.0
+- id: reply.sg.Own work (Q5=Y).Q-R semantic similarity.beta
+  where: Table 7 (tab:reply_subgroup), Q5=Y / Q--R cos. sim., beta
+  paper: +.014
+  value: 0.014
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.Own work (Q5=Y).Q-R semantic similarity.p
+  where: Table 7 (tab:reply_subgroup), Q5=Y / Q--R cos. sim., p
+  paper: '.037'
+  value: 0.037
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: p
+  scale: 1.0
+- id: reply.sg.Own work (Q5=Y).N
+  where: Table 7 (tab:reply_subgroup), Q5=Y / Quest. marks, N
+  paper: 6,296
+  value: 6296.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: N
+  scale: 1.0
+- id: reply.sg.Own work (Q5=Y).Question marks in reply.beta
+  where: Table 7 (tab:reply_subgroup), Q5=Y / Quest. marks, beta
+  paper: +.014
+  value: 0.014
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.Own work (Q5=Y).Question marks in reply.p
+  where: Table 7 (tab:reply_subgroup), Q5=Y / Quest. marks, p
+  paper: '.008'
+  value: 0.008
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: p
+  scale: 1.0
+- id: reply.sg.No own work (Q5=N).N
+  where: Table 7 (tab:reply_subgroup), Q5=N / Q--R cos. sim., N
+  paper: 19,974
+  value: 19974.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: N
+  scale: 1.0
+- id: reply.sg.No own work (Q5=N).Q-R semantic similarity.beta
+  where: Table 7 (tab:reply_subgroup), Q5=N / Q--R cos. sim., beta
+  paper: +.018
+  value: 0.018
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.No own work (Q5=N).Q-R semantic similarity.p
+  where: Table 7 (tab:reply_subgroup), Q5=N / Q--R cos. sim., p
+  paper: <.001
+  value: 0.001
+  kind: lt
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: p
+  scale: 1.0
+- id: reply.sg.No own work (Q5=N).N
+  where: Table 7 (tab:reply_subgroup), Q5=N / VADER sent., N
+  paper: 19,974
+  value: 19974.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: N
+  scale: 1.0
+- id: reply.sg.No own work (Q5=N).VADER compound sentiment.beta
+  where: Table 7 (tab:reply_subgroup), Q5=N / VADER sent., beta
+  paper: +.007
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.No own work (Q5=N).VADER compound sentiment.p
+  where: Table 7 (tab:reply_subgroup), Q5=N / VADER sent., p
+  paper: '.021'
+  value: 0.021
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: p
+  scale: 1.0
+- id: reply.sg.No own work (Q5=N).N
+  where: Table 7 (tab:reply_subgroup), Q5=N / ``We'' rate, N
+  paper: 19,974
+  value: 19974.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: N
+  scale: 1.0
+- id: reply.sg.No own work (Q5=N)."We" rate (per word).beta
+  where: Table 7 (tab:reply_subgroup), Q5=N / ``We'' rate, beta
+  paper: -.006
+  value: -0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.sg.No own work (Q5=N)."We" rate (per word).p
+  where: Table 7 (tab:reply_subgroup), Q5=N / ``We'' rate, p
+  paper: '.016'
+  value: 0.016
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: p
+  scale: 1.0
+- id: reply.full_table.Technical.Reply lag (hours)
+  where: Appendix tab:reply_subgroup_full, Reply lag (hours) / Technical
+  paper: -.039***
+  value: -0.039
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Reply lag (hours)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Reply lag (hours)
+  where: Appendix tab:reply_subgroup_full, Reply lag (hours) / Referent (Q2)
+  paper: -.020***
+  value: -0.02
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Reply lag (hours)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Reply lag (hours)
+  where: Appendix tab:reply_subgroup_full, Reply lag (hours) / Normative (Q4)
+  paper: -.051***
+  value: -0.051
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Reply lag (hours)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Reply lag (hours)
+  where: Appendix tab:reply_subgroup_full, Reply lag (hours) / Non-substantive
+  paper: -.020***
+  value: -0.02
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Reply lag (hours)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Reply lag (hours)
+  where: Appendix tab:reply_subgroup_full, Reply lag (hours) / Own work (Q5=Y)
+  paper: -.041***
+  value: -0.041
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Reply lag (hours)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Reply lag (hours)
+  where: Appendix tab:reply_subgroup_full, Reply lag (hours) / No own work (Q5=N)
+  paper: -.032***
+  value: -0.032
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Reply lag (hours)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Q-R semantic similarity
+  where: Appendix tab:reply_subgroup_full, Q--R cosine sim. / Technical
+  paper: +.019***
+  value: 0.019
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Q-R semantic similarity
+  where: Appendix tab:reply_subgroup_full, Q--R cosine sim. / Referent (Q2)
+  paper: +.011
+  value: 0.011
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Q-R semantic similarity
+  where: Appendix tab:reply_subgroup_full, Q--R cosine sim. / Normative (Q4)
+  paper: +.019*
+  value: 0.019
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Q-R semantic similarity
+  where: Appendix tab:reply_subgroup_full, Q--R cosine sim. / Non-substantive
+  paper: +.010
+  value: 0.01
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Q-R semantic similarity
+  where: Appendix tab:reply_subgroup_full, Q--R cosine sim. / Own work (Q5=Y)
+  paper: +.013*
+  value: 0.013
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Q-R semantic similarity
+  where: Appendix tab:reply_subgroup_full, Q--R cosine sim. / No own work (Q5=N)
+  paper: +.017***
+  value: 0.017
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Q-R semantic similarity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Positive language
+  where: Appendix tab:reply_subgroup_full, Positive language / Technical
+  paper: +.012*
+  value: 0.012
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Positive language
+  where: Appendix tab:reply_subgroup_full, Positive language / Referent (Q2)
+  paper: -.001
+  value: -0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Positive language
+  where: Appendix tab:reply_subgroup_full, Positive language / Normative (Q4)
+  paper: +.006
+  value: 0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Positive language
+  where: Appendix tab:reply_subgroup_full, Positive language / Non-substantive
+  paper: +.011
+  value: 0.011
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Positive language
+  where: Appendix tab:reply_subgroup_full, Positive language / Own work (Q5=Y)
+  paper: +.012
+  value: 0.012
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Positive language
+  where: Appendix tab:reply_subgroup_full, Positive language / No own work (Q5=N)
+  paper: +.005
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Positive language'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Question marks in reply
+  where: Appendix tab:reply_subgroup_full, Question marks / Technical
+  paper: +.000
+  value: 0.0
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Question marks in reply
+  where: Appendix tab:reply_subgroup_full, Question marks / Referent (Q2)
+  paper: +.020**
+  value: 0.02
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Question marks in reply
+  where: Appendix tab:reply_subgroup_full, Question marks / Normative (Q4)
+  paper: +.008
+  value: 0.008
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Question marks in reply
+  where: Appendix tab:reply_subgroup_full, Question marks / Non-substantive
+  paper: +.005
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Question marks in reply
+  where: Appendix tab:reply_subgroup_full, Question marks / Own work (Q5=Y)
+  paper: +.014**
+  value: 0.014
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Question marks in reply
+  where: Appendix tab:reply_subgroup_full, Question marks / No own work (Q5=N)
+  paper: +.003
+  value: 0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Question marks in reply'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.VADER compound sentiment
+  where: Appendix tab:reply_subgroup_full, VADER compound / Technical
+  paper: +.002
+  value: 0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).VADER compound sentiment
+  where: Appendix tab:reply_subgroup_full, VADER compound / Referent (Q2)
+  paper: +.007
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).VADER compound sentiment
+  where: Appendix tab:reply_subgroup_full, VADER compound / Normative (Q4)
+  paper: +.006
+  value: 0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.VADER compound sentiment
+  where: Appendix tab:reply_subgroup_full, VADER compound / Non-substantive
+  paper: +.010
+  value: 0.01
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).VADER compound sentiment
+  where: Appendix tab:reply_subgroup_full, VADER compound / Own work (Q5=Y)
+  paper: +.006
+  value: 0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).VADER compound sentiment
+  where: Appendix tab:reply_subgroup_full, VADER compound / No own work (Q5=N)
+  paper: +.006*
+  value: 0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''VADER compound sentiment'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical."We" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``We'' rate / Technical
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2)."We" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``We'' rate / Referent (Q2)
+  paper: -.007
+  value: -0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4)."We" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``We'' rate / Normative (Q4)
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive."We" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``We'' rate / Non-substantive
+  paper: -.006
+  value: -0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y)."We" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``We'' rate / Own work (Q5=Y)
+  paper: -.009
+  value: -0.009
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N)."We" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``We'' rate / No own work (Q5=N)
+  paper: -.006*
+  value: -0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''"We" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical."I" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``I'' rate / Technical
+  paper: +.010*
+  value: 0.01
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''"I" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2)."I" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``I'' rate / Referent (Q2)
+  paper: -.000
+  value: -0.0
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''"I" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4)."I" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``I'' rate / Normative (Q4)
+  paper: +.004
+  value: 0.004
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''"I" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive."I" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``I'' rate / Non-substantive
+  paper: -.003
+  value: -0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''"I" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y)."I" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``I'' rate / Own work (Q5=Y)
+  paper: +.001
+  value: 0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''"I" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N)."I" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``I'' rate / No own work (Q5=N)
+  paper: +.003
+  value: 0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''"I" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical."You" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``You'' rate / Technical
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''"You" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2)."You" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``You'' rate / Referent (Q2)
+  paper: +.005
+  value: 0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''"You" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4)."You" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``You'' rate / Normative (Q4)
+  paper: -.007
+  value: -0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''"You" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive."You" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``You'' rate / Non-substantive
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''"You" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y)."You" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``You'' rate / Own work (Q5=Y)
+  paper: -.009
+  value: -0.009
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''"You" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N)."You" rate (per word)
+  where: Appendix tab:reply_subgroup_full, ``You'' rate / No own work (Q5=N)
+  paper: -.003
+  value: -0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''"You" rate (per word)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Reply word count
+  where: Appendix tab:reply_subgroup_full, Reply word count / Technical
+  paper: -.003
+  value: -0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Reply word count'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Reply word count
+  where: Appendix tab:reply_subgroup_full, Reply word count / Referent (Q2)
+  paper: +.016
+  value: 0.016
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Reply word count'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Reply word count
+  where: Appendix tab:reply_subgroup_full, Reply word count / Normative (Q4)
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Reply word count'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Reply word count
+  where: Appendix tab:reply_subgroup_full, Reply word count / Non-substantive
+  paper: -.020
+  value: -0.02
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Reply word count'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Reply word count
+  where: Appendix tab:reply_subgroup_full, Reply word count / Own work (Q5=Y)
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Reply word count'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Reply word count
+  where: Appendix tab:reply_subgroup_full, Reply word count / No own work (Q5=N)
+  paper: -.003
+  value: -0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Reply word count'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Reply/question word ratio
+  where: Appendix tab:reply_subgroup_full, Reply/Q word ratio / Technical
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Reply/question word ratio'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Reply/question word ratio
+  where: Appendix tab:reply_subgroup_full, Reply/Q word ratio / Referent (Q2)
+  paper: -.023
+  value: -0.023
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Reply/question word ratio'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Reply/question word ratio
+  where: Appendix tab:reply_subgroup_full, Reply/Q word ratio / Normative (Q4)
+  paper: +.008
+  value: 0.008
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Reply/question word ratio'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Reply/question word ratio
+  where: Appendix tab:reply_subgroup_full, Reply/Q word ratio / Non-substantive
+  paper: +.003
+  value: 0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Reply/question word ratio'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Reply/question word ratio
+  where: Appendix tab:reply_subgroup_full, Reply/Q word ratio / Own work (Q5=Y)
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Reply/question word ratio'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Reply/question word ratio
+  where: Appendix tab:reply_subgroup_full, Reply/Q word ratio / No own work (Q5=N)
+  paper: +.002
+  value: 0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Reply/question word ratio'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Flesch-Kincaid grade
+  where: Appendix tab:reply_subgroup_full, Flesch-Kincaid grade / Technical
+  paper: +.001
+  value: 0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Flesch-Kincaid grade'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Flesch-Kincaid grade
+  where: Appendix tab:reply_subgroup_full, Flesch-Kincaid grade / Referent (Q2)
+  paper: +.007
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Flesch-Kincaid grade'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Flesch-Kincaid grade
+  where: Appendix tab:reply_subgroup_full, Flesch-Kincaid grade / Normative (Q4)
+  paper: +.002
+  value: 0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Flesch-Kincaid grade'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Flesch-Kincaid grade
+  where: Appendix tab:reply_subgroup_full, Flesch-Kincaid grade / Non-substantive
+  paper: +.001
+  value: 0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Flesch-Kincaid grade'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Flesch-Kincaid grade
+  where: Appendix tab:reply_subgroup_full, Flesch-Kincaid grade / Own work (Q5=Y)
+  paper: -.011
+  value: -0.011
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Flesch-Kincaid grade'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Flesch-Kincaid grade
+  where: Appendix tab:reply_subgroup_full, Flesch-Kincaid grade / No own work (Q5=N)
+  paper: +.004
+  value: 0.004
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Flesch-Kincaid grade'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.TextBlob subjectivity
+  where: Appendix tab:reply_subgroup_full, TextBlob subjectivity / Technical
+  paper: -.001
+  value: -0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''TextBlob subjectivity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).TextBlob subjectivity
+  where: Appendix tab:reply_subgroup_full, TextBlob subjectivity / Referent (Q2)
+  paper: -.013*
+  value: -0.013
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''TextBlob subjectivity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).TextBlob subjectivity
+  where: Appendix tab:reply_subgroup_full, TextBlob subjectivity / Normative (Q4)
+  paper: +.013
+  value: 0.013
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''TextBlob subjectivity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.TextBlob subjectivity
+  where: Appendix tab:reply_subgroup_full, TextBlob subjectivity / Non-substantive
+  paper: +.002
+  value: 0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''TextBlob subjectivity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).TextBlob subjectivity
+  where: Appendix tab:reply_subgroup_full, TextBlob subjectivity / Own work (Q5=Y)
+  paper: +.011
+  value: 0.011
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''TextBlob subjectivity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).TextBlob subjectivity
+  where: Appendix tab:reply_subgroup_full, TextBlob subjectivity / No own work (Q5=N)
+  paper: -.001
+  value: -0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''TextBlob subjectivity'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Imperative sentences
+  where: Appendix tab:reply_subgroup_full, Imperative sentences / Technical
+  paper: +.002
+  value: 0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Imperative sentences'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Imperative sentences
+  where: Appendix tab:reply_subgroup_full, Imperative sentences / Referent (Q2)
+  paper: +.000
+  value: 0.0
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Imperative sentences'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Imperative sentences
+  where: Appendix tab:reply_subgroup_full, Imperative sentences / Normative (Q4)
+  paper: +.006
+  value: 0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Imperative sentences'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Imperative sentences
+  where: Appendix tab:reply_subgroup_full, Imperative sentences / Non-substantive
+  paper: -.001
+  value: -0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Imperative sentences'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Imperative sentences
+  where: Appendix tab:reply_subgroup_full, Imperative sentences / Own work (Q5=Y)
+  paper: +.003
+  value: 0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Imperative sentences'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Imperative sentences
+  where: Appendix tab:reply_subgroup_full, Imperative sentences / No own work (Q5=N)
+  paper: +.003
+  value: 0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Imperative sentences'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Has list
+  where: Appendix tab:reply_subgroup_full, Has list / Technical
+  paper: +.002
+  value: 0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Has list'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Has list
+  where: Appendix tab:reply_subgroup_full, Has list / Referent (Q2)
+  paper: +.000
+  value: 0.0
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Has list'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Has list
+  where: Appendix tab:reply_subgroup_full, Has list / Normative (Q4)
+  paper: +.001
+  value: 0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Has list'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Has list
+  where: Appendix tab:reply_subgroup_full, Has list / Non-substantive
+  paper: +.003
+  value: 0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Has list'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Has list
+  where: Appendix tab:reply_subgroup_full, Has list / Own work (Q5=Y)
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Has list'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Has list
+  where: Appendix tab:reply_subgroup_full, Has list / No own work (Q5=N)
+  paper: +.003
+  value: 0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Has list'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Has greeting
+  where: Appendix tab:reply_subgroup_full, Has greeting / Technical
+  paper: +.003
+  value: 0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Has greeting'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Has greeting
+  where: Appendix tab:reply_subgroup_full, Has greeting / Referent (Q2)
+  paper: +.001
+  value: 0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Has greeting'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Has greeting
+  where: Appendix tab:reply_subgroup_full, Has greeting / Normative (Q4)
+  paper: -.009
+  value: -0.009
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Has greeting'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Has greeting
+  where: Appendix tab:reply_subgroup_full, Has greeting / Non-substantive
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Has greeting'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Has greeting
+  where: Appendix tab:reply_subgroup_full, Has greeting / Own work (Q5=Y)
+  paper: +.002
+  value: 0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Has greeting'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Has greeting
+  where: Appendix tab:reply_subgroup_full, Has greeting / No own work (Q5=N)
+  paper: -.000
+  value: -0.0
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Has greeting'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Gratitude expression
+  where: Appendix tab:reply_subgroup_full, Gratitude / Technical
+  paper: -.002
+  value: -0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Gratitude expression'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Gratitude expression
+  where: Appendix tab:reply_subgroup_full, Gratitude / Referent (Q2)
+  paper: +.009
+  value: 0.009
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Gratitude expression'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Gratitude expression
+  where: Appendix tab:reply_subgroup_full, Gratitude / Normative (Q4)
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Gratitude expression'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Gratitude expression
+  where: Appendix tab:reply_subgroup_full, Gratitude / Non-substantive
+  paper: +.002
+  value: 0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Gratitude expression'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Gratitude expression
+  where: Appendix tab:reply_subgroup_full, Gratitude / Own work (Q5=Y)
+  paper: +.001
+  value: 0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Gratitude expression'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Gratitude expression
+  where: Appendix tab:reply_subgroup_full, Gratitude / No own work (Q5=N)
+  paper: -.001
+  value: -0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Gratitude expression'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Deference
+  where: Appendix tab:reply_subgroup_full, Deference / Technical
+  paper: -.004
+  value: -0.004
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Deference'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Deference
+  where: Appendix tab:reply_subgroup_full, Deference / Referent (Q2)
+  paper: +.006
+  value: 0.006
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Deference'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Deference
+  where: Appendix tab:reply_subgroup_full, Deference / Normative (Q4)
+  paper: -.004
+  value: -0.004
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Deference'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Deference
+  where: Appendix tab:reply_subgroup_full, Deference / Non-substantive
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Deference'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Deference
+  where: Appendix tab:reply_subgroup_full, Deference / Own work (Q5=Y)
+  paper: +.000
+  value: 0.0
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Deference'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Deference
+  where: Appendix tab:reply_subgroup_full, Deference / No own work (Q5=N)
+  paper: -.003
+  value: -0.003
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Deference'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Policy references
+  where: Appendix tab:reply_subgroup_full, Policy refs / Technical
+  paper: -.013
+  value: -0.013
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Policy references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Policy references
+  where: Appendix tab:reply_subgroup_full, Policy refs / Referent (Q2)
+  paper: -.034
+  value: -0.034
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Policy references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Policy references
+  where: Appendix tab:reply_subgroup_full, Policy refs / Normative (Q4)
+  paper: -.037
+  value: -0.037
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Policy references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Policy references
+  where: Appendix tab:reply_subgroup_full, Policy refs / Non-substantive
+  paper: +.102**
+  value: 0.102
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Policy references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Policy references
+  where: Appendix tab:reply_subgroup_full, Policy refs / Own work (Q5=Y)
+  paper: +.015
+  value: 0.015
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Policy references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Policy references
+  where: Appendix tab:reply_subgroup_full, Policy refs / No own work (Q5=N)
+  paper: -.016
+  value: -0.016
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Policy references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Wikilinks
+  where: Appendix tab:reply_subgroup_full, Wikilinks / Technical
+  paper: -.002
+  value: -0.002
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Wikilinks'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Wikilinks
+  where: Appendix tab:reply_subgroup_full, Wikilinks / Referent (Q2)
+  paper: -.033
+  value: -0.033
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Wikilinks'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Wikilinks
+  where: Appendix tab:reply_subgroup_full, Wikilinks / Normative (Q4)
+  paper: -.014
+  value: -0.014
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Wikilinks'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Wikilinks
+  where: Appendix tab:reply_subgroup_full, Wikilinks / Non-substantive
+  paper: +.033*
+  value: 0.033
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Wikilinks'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Wikilinks
+  where: Appendix tab:reply_subgroup_full, Wikilinks / Own work (Q5=Y)
+  paper: +.012
+  value: 0.012
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Wikilinks'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Wikilinks
+  where: Appendix tab:reply_subgroup_full, Wikilinks / No own work (Q5=N)
+  paper: -.009
+  value: -0.009
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Wikilinks'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Help page references
+  where: Appendix tab:reply_subgroup_full, Help page refs / Technical
+  paper: -.001
+  value: -0.001
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Help page references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Help page references
+  where: Appendix tab:reply_subgroup_full, Help page refs / Referent (Q2)
+  paper: -.014
+  value: -0.014
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Help page references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Help page references
+  where: Appendix tab:reply_subgroup_full, Help page refs / Normative (Q4)
+  paper: -.010
+  value: -0.01
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Help page references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Help page references
+  where: Appendix tab:reply_subgroup_full, Help page refs / Non-substantive
+  paper: +.004
+  value: 0.004
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Help page references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Help page references
+  where: Appendix tab:reply_subgroup_full, Help page refs / Own work (Q5=Y)
+  paper: +.007
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Help page references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Help page references
+  where: Appendix tab:reply_subgroup_full, Help page refs / No own work (Q5=N)
+  paper: -.005
+  value: -0.005
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Help page references'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Technical.Resource links (total)
+  where: Appendix tab:reply_subgroup_full, Resource links (total) / Technical
+  paper: +.008
+  value: 0.008
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Technical'' and `DV_key` == ''primary'' and `Feature` == ''Resource links (total)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Referent (Q2).Resource links (total)
+  where: Appendix tab:reply_subgroup_full, Resource links (total) / Referent (Q2)
+  paper: +.046
+  value: 0.046
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Referent (Q2)'' and `DV_key` == ''primary'' and `Feature` == ''Resource links (total)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Normative (Q4).Resource links (total)
+  where: Appendix tab:reply_subgroup_full, Resource links (total) / Normative (Q4)
+  paper: +.037
+  value: 0.037
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Normative (Q4)'' and `DV_key` == ''primary'' and `Feature` == ''Resource links (total)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Non-substantive.Resource links (total)
+  where: Appendix tab:reply_subgroup_full, Resource links (total) / Non-substantive
+  paper: -.095**
+  value: -0.095
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Non-substantive'' and `DV_key` == ''primary'' and `Feature` == ''Resource links (total)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.Own work (Q5=Y).Resource links (total)
+  where: Appendix tab:reply_subgroup_full, Resource links (total) / Own work (Q5=Y)
+  paper: -.025
+  value: -0.025
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `DV_key` == ''primary'' and `Feature` == ''Resource links (total)'''
+  column: Beta_std
+  scale: 1.0
+- id: reply.full_table.No own work (Q5=N).Resource links (total)
+  where: Appendix tab:reply_subgroup_full, Resource links (total) / No own work (Q5=N)
+  paper: +.015
+  value: 0.015
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/association_by_subgroup.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `DV_key` == ''primary'' and `Feature` == ''Resource links (total)'''
+  column: Beta_std
+  scale: 1.0
+- id: text.n
+  where: Abstract, Sec 3.2
+  paper: 35,381
+  value: 35381.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: n
+  scale: 1
+- id: text.n_treated
+  where: Sec 3.2
+  paper: 26,278
+  value: 26278.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: n_treated
+  scale: 1
+- id: text.n_control
+  where: Sec 3.2
+  paper: 9,103
+  value: 9103.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: n_control
+  scale: 1
+- id: text.treated_pct
+  where: Sec 2.3
+  paper: '74.3'
+  value: 74.3
+  kind: value
+  tol: 0.050000000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: treated_pct
+  scale: 1
+- id: text.auc
+  where: Sec 4.3
+  paper: '0.618'
+  value: 0.618
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: auc
+  scale: 1
+- id: text.baseline
+  where: Sec 5.1 (18.7%)
+  paper: '18.7'
+  value: 18.7
+  kind: value
+  tol: 0.050000000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: control_baseline_primary
+  scale: 100
+- id: text.rel_primary
+  where: Abstract (8.8%)
+  paper: '8.8'
+  value: 8.8
+  kind: value
+  tol: 0.050000000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: relative_effect_primary_pct
+  scale: 1
+- id: text.rel_2days
+  where: Abstract (14.4%)
+  paper: '14.4'
+  value: 14.4
+  kind: value
+  tol: 0.050000000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: relative_effect_2plus_days_pct
+  scale: 1
+- id: text.n_raw_smd
+  where: Sec 4.3 (9 covariates exceed)
+  paper: '9'
+  value: 9.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: n_raw_smd_gt_0.1
+  scale: 1
+- id: text.max_raw_smd
+  where: Sec 4.3 (max = 0.34)
+  paper: '0.34'
+  value: 0.34
+  kind: value
+  tol: 0.005000000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: max_raw_smd
+  scale: 1
+- id: text.max_strat_smd
+  where: Sec 4.3 (max stratified SMD = 0.033)
+  paper: '0.033'
+  value: 0.033
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: max_strat_smd_legacy
+  scale: 1
+  note: "paper-version definition (strata weighted by total size); the ATT-weighted version is max_strat_smd_att (I-35)"
+- id: text.outside_support
+  where: Sec 4.3 (3 observations)
+  paper: '3'
+  value: 3.0
+  kind: value
+  tol: 0.500000000001
+  source: m8_legacy/s13_text_numbers.csv
+  query: ''
+  column: n_outside_common_support
+  scale: 1
+- id: text.evalue_ci
+  where: Sec 5.2, Limitations (E-value 1.080)
+  paper: '1.080'
+  value: 1.08
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/evalues.csv
+  query: index == 2
+  column: e_ci
+  scale: 1
+  note: "I-19: the paper used 1+ATT; here we compare with the corrected E-value"
+- id: text.ablation_mentor_auc
+  where: Sec 4.1 (AUC 0.62 → 0.80)
+  paper: '0.80'
+  value: 0.8
+  kind: value
+  tol: 0.005000000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full + mentor features'''
+  column: AUC
+  scale: 1
+- id: text.ablation_mentor_att
+  where: Sec 4.1 (ATT → +0.007)
+  paper: '0.007'
+  value: 0.007
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/A7_feature_ablation.csv
+  query: '`Model` == ''Full + mentor features'''
+  column: ATT
+  scale: 1
+- id: text.48h_range_hi
+  where: Sec 5.2 (all in [+0.015, +0.018], incl. 48h)
+  paper: '0.018'
+  value: 0.018
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/C6_robustness_summary.csv
+  query: '`Spec` == ''D=48h'''
+  column: ATT
+  scale: 1
+  note: "I-21: the ATT under the 48-hour definition is not in this range"
+- id: text.tech_retention
+  where: Sec 6.3 (Technical retention +0.017)
+  paper: '0.017'
+  value: 0.017
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Technical'' and `Outcome` == ''2+_active_days_14d'''
+  column: ATT
+  scale: 1
+- id: text.q5y_retention
+  where: Sec 6.3 (Q5=Y retention +0.026)
+  paper: '0.026'
+  value: 0.026
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''Own work (Q5=Y)'' and `Outcome` == ''2+_active_days_14d'''
+  column: ATT
+  scale: 1
+- id: text.q5n_retention
+  where: Sec 6.3 (Q5=N retention +0.014)
+  paper: '0.014'
+  value: 0.014
+  kind: value
+  tol: 0.000500000001
+  source: m8_legacy/subgroup_att.csv
+  query: '`Subgroup` == ''No own work (Q5=N)'' and `Outcome` == ''2+_active_days_14d'''
+  column: ATT
+  scale: 1
