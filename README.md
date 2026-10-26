@@ -1,6 +1,6 @@
 # Who Benefits from Wikipedia's Growth Mentorship?
 
-Code for the ICWSM paper *"Who Benefits from Wikipedia's Growth Mentorship? The Role of Newcomer Information Needs."*
+Code for the paper *"Who Benefits from Wikipedia's Growth Mentorship? The Role of Newcomer Information Needs,"* accepted at ICWSM 2027.
 
 English Wikipedia assigns every new account a volunteer mentor, and newcomers can send that mentor a question. This
 repository rebuilds the full study from public Wikipedia data:
