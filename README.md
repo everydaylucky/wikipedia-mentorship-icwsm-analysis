@@ -59,19 +59,28 @@ Copy `.env.example` to `.env` and fill it in:
 
 ## Input data
 
-The pipeline starts from data that was collected from Wikipedia before the cutoff and then checks and completes it
-against Wikipedia as it was at the cutoff. These input files (mentor roster revisions, tagged question revisions,
-newcomer profiles and contributions, and the raw API responses collected by this code) are too large for GitHub.
-They are on Hugging Face: **[Hugging Face dataset link to be added]**.
+The pipeline starts from data that was collected from Wikipedia before the cutoff, and then checks and completes it
+against Wikipedia as it was at the cutoff. The input files (mentor roster revisions, tagged question revisions,
+newcomer activity, and the paper-version files used for comparison) are on Hugging Face:
+<https://huggingface.co/datasets/mars1989/wikipedia-mentorship-icwsm-data>.
 
-After downloading:
+```bash
+pip install huggingface_hub
+huggingface-cli download mars1989/wikipedia-mentorship-icwsm-data --repo-type dataset --local-dir parent/
+cd parent
+git clone https://github.com/everydaylucky/wikipedia-mentorship-icwsm-analysis.git
+cp -R 2wiki-mentor-github-main/data/. wikipedia-mentorship-icwsm-analysis/data/
+```
 
-- put the folders of the snapshot next to this repository, so that the folder names match the paths in `config.py`
-  (section 2, "External data"), or set the `WIKI_BASE` environment variable to the folder that holds them;
-- put the `raw/` folder of the snapshot at `data/raw/` in this repository.
+The code looks for the input folders next to itself (in `parent/`). To keep them elsewhere, set the environment
+variable `WIKI_BASE` to the folder that holds them.
 
-Only the small annotation files are kept in this repository (`data/annotation/`). Everything else is computed by the
-code here.
+The dataset already includes the output of `pipeline.m3_activity.index_s6` (the newcomer activity of every asker),
+because the original activity files it reads are 8.7 GB. **Skip `index_s6`** and start M3 with `collect_topup`.
+The rest of the raw data (talk-page parses, top-up histories, revert times, API cache) is rebuilt by the online
+steps below.
+
+The annotation files are small and are kept in this repository (`data/annotation/`).
 
 ## Running the pipeline
 
@@ -93,8 +102,7 @@ python -m pipeline.m2_conversations.collect_topup --online --phase removals  # o
 python -m pipeline.m2_conversations.collect_topup --online --phase recheck
 python -m pipeline.m2_conversations.build_questions
 
-# M3 newcomer activity
-python -m pipeline.m3_activity.index_s6
+# M3 newcomer activity (index_s6 is skipped: its output comes with the dataset)
 python -m pipeline.m3_activity.collect_topup --online                      # online: missing or incomplete histories
 python -m pipeline.m3_activity.merge_activity
 python -m pipeline.m3_activity.revert_times --online --phase all --window-days 30   # online: when reverted edits were reverted
