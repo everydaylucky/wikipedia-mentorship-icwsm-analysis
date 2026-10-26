@@ -156,3 +156,8 @@ are in `data/annotation/`. `python -m pipeline.m6_text.agreement` reproduces the
 All data come from public Wikipedia pages and logs through the MediaWiki API. No private data are used. The released
 annotation files do not contain user names. Please follow Wikimedia's API etiquette if you collect data again: keep
 the one-request-per-second limit and send your own contact address.
+
+## License
+
+The code is released under the [MIT License](LICENSE). The annotation files in `data/annotation/` are released under
+[CC BY-SA 4.0](data/annotation/LICENSE), because they contain Wikipedia text, which is licensed under CC BY-SA 4.0.
