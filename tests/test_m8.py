@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import config
+
 from pipeline.m8_analysis import estimators as est
 from pipeline.m8_analysis import regression as reg
 
@@ -137,3 +139,22 @@ def test_bh_qvalues_and_vif():
     Xs = np.column_stack([a, a + rng.normal(scale=0.01, size=500), rng.normal(size=500)])
     _, kept, table = reg.vif_screen(Xs, ["a", "a_copy", "c"])
     assert "c" in kept and table.dropped.sum() == 2
+
+
+def test_ns_group():
+    from pipeline.m8_analysis.descriptive import ns_group
+    assert list(ns_group(np.array([0, 118, 2, 3, 1, 4, 10]))) == ["articles", "drafts", "user_and_talk", "user_and_talk",
+                                                                  "user_and_talk", "other", "other"]
+
+
+@pytest.mark.skipif(not (config.ANALYTIC / "psm_dataset_legacy_layout.npz").exists(), reason="M7 has not been run")
+def test_question_anchor_matches_zero_lag_for_controls():
+    """For control newcomers, anchoring at the question equals the zero pseudo-lag version computed by M5."""
+    import pandas as pd
+    from pipeline.m8_analysis.followup import question_anchor_outcome
+    from pipeline.m8_analysis.run_analysis import load, subset
+    D = load()
+    D = subset(D, D["in_sample"] & (D["y_treat"] == 0))
+    q = pd.to_datetime(pd.Series(D["q_ts"]), utc=True)
+    D = subset(D, (q + pd.Timedelta(days=14) <= pd.Timestamp(config.DATA_CUTOFF)).to_numpy())
+    assert (question_anchor_outcome(D) == D["oc_primary__zero"].astype(float)).all()

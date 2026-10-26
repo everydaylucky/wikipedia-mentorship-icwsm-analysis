@@ -242,7 +242,7 @@ def main(argv: list[str] | None = None) -> None:
     imp, ind = impute(df, [c for b in ("Qpersp", "Qtype", "emb20") for c in blocks[b]])
     for c in [c for b in blocks.values() for c in b]:
         if imp[c].nunique() <= 1:
-            log.warning("constant column (kept for layout, dropped from PS model by M8): %s", c)
+            log.warning("constant column (kept; it has no effect on the PS model: after standardization it is all 0): %s", c)
     write_table(OUT / "psm_dataset.parquet", imp)
     (OUT / "data_dictionary.yaml").write_text(yaml.safe_dump({"blocks": {k: v for k, v in blocks.items()},
                                                               "missing_indicators": ind, "columns": dd},

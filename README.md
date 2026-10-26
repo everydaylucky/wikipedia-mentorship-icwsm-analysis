@@ -114,6 +114,8 @@ python -m pipeline.m6_text.build_text --online                             # onl
 python -m pipeline.m6_text.agreement                                       # annotation agreement (paper Table 3)
 python -m pipeline.m7_dataset.build_dataset
 python -m pipeline.m8_analysis.run_analysis
+python -m pipeline.m8_analysis.followup                                   # later periods, question-time anchor
+python -m pipeline.m8_analysis.descriptive                                # long-term trajectories, conversation depth
 python -m pipeline.m9_paper.compare_new
 ```
 
