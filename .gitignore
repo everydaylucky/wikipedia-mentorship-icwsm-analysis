@@ -2,6 +2,7 @@
 .env
 
 # Data and outputs: rebuilt by the pipeline or released separately (see README "Input data")
+data/input/
 data/raw/
 data/interim/
 data/cache/

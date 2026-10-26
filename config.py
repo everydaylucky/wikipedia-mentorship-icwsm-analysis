@@ -109,66 +109,56 @@ FORCEMENTOR_LIVE: datetime = datetime(2023, 2, 2, tzinfo=timezone.utc)
 ROSTER_SOURCE_SWITCH: datetime = datetime(2022, 10, 26, 13, 19, 10, tzinfo=timezone.utc)
 
 # ════════════════════════════════════════════════════════════════════════════
-# 3. Existing external data (inventory table in PLAN.md section 1)
-#    Keys are used in data/raw/SOURCES.yaml; values are the original locations.
+# 3. Input data (data/input/; download it from Hugging Face, see README "Input data")
+#    Every input lives under data/input/, grouped by what it is. Keys are the names the modules use.
 # ════════════════════════════════════════════════════════════════════════════
 
+INPUT: Path = DATA / "input"
+#: Git checkout of the paper-version code. Optional: only used to read the paper-version result tables for comparison.
 PAPER_REPO: Path = WIKI_BASE / "1wiki-mentor-github-main" / "wikpedia-mentor-eval"
 PAPER_COMMIT: str = "23fea07"          # git commit that matches the paper version's code and results
-EVAL2: Path = WIKI_BASE / "1wiki-mentor-github-main" / "wikipedia-mentor-eval2"
-S6_DIR: Path = WIKI_BASE / "0wiki-mentor-github"
-TWO_SLS_INPUTS: Path = WIKI_BASE / "2026-6" / "2026-6-5" / "2sls_pipeline" / "inputs"
 
 EXTERNAL: dict[str, Path] = {
-    # Item 1: all revisions of the mentor roster page
-    "roster_revisions_wikitext": PAPER_REPO / "data/s1/s1_checkpoint_revisions_wikitext.jsonl",
-    "roster_revisions_json":     PAPER_REPO / "data/s1/s1_checkpoint_revisions_json.jsonl",
-    "roster_uid_map":            PAPER_REPO / "data/s1/s1_checkpoint_uid_map.json",
-    # Item 2: eval2 frozen roster (replayed up to 2026-04-24)
-    "eval2_mentor_list":         EVAL2 / "data/s1/s1_mentor_list.jsonl",
-    "eval2_mentor_change":       EVAL2 / "data/s1/s1_mentor_change.jsonl",
-    # Items 3 and 4: questions collected by tag
-    "eval2_tagged_raw":          EVAL2 / "data/s2/s2_tagged_conversations_raw.jsonl",
-    "eval2_conversations":       EVAL2 / "data/s2/s2_conversations.jsonl",
-    "tag_scan_checkpoint":       PAPER_REPO / "data/s2/s2_tag_checkpoint.txt",
-    # Item 5: paper-version data (only for the stage A replication)
-    "paper_s5":                  PAPER_REPO / "_deprecated_nontag/data/s5/s5_all_conversations.jsonl",
-    "paper_s7":                  PAPER_REPO / "data/s7/s7_conversations_cleaned.jsonl",
-    "paper_s8":                  PAPER_REPO / "data/s8/s8_first_turns.jsonl",
-    "paper_s11":                 PAPER_REPO / "data/s11/s11_features.jsonl",
-    "paper_npz":                 PAPER_REPO / "data/s12/psm_data/psm_dataset.npz",
-    "paper_reply_features":      PAPER_REPO / "data/s15/reply_features.csv",
-    # Item 6: s6 newcomer profiles and activity (fetched 2026-04-23 to 24, stored by user name)
-    "s6_profiles":               S6_DIR / "s6_user_profiles.jsonl",
-    "s6_contribs":               S6_DIR / "s6_user_contribs.jsonl",
-    "s6_logevents":              S6_DIR / "s6_user_logevents.jsonl",
-    "s6_abuselog":               S6_DIR / "s6_user_abuselog.jsonl",
-    # Item 10: Qwen embeddings (keyed by paper-version cid)
-    "emb_q":                     S6_DIR / "s8_embeddings_q.npz",
-    "emb_q_meta":                S6_DIR / "s8_embeddings_q_meta.jsonl",
-    "emb_r":                     S6_DIR / "s8_embeddings_r.npz",
-    "emb_r_meta":                S6_DIR / "s8_embeddings_r_meta.jsonl",
-    # Items 11 to 13: LLM annotations, human gold standard, Perspective
-    # Annotation inputs are kept inside this repo (data/annotation/, see its README.md) so anyone can reproduce them.
-    "llm_annotations":           ROOT / "data/annotation/llm_labels_corpus_v2.jsonl",      # paper's DeepSeek labels for the full corpus
-    "codebook_prompt":           ROOT / "data/annotation/codebook_llm_prompt.md",          # LLM system prompt (codebook part)
-    "llm_fewshot":               ROOT / "data/annotation/llm_fewshot_examples.xlsx",       # first 120 rows = few-shot examples in the prompt
-    "irr_gold":                  ROOT / "data/annotation/irr_consensus_labels.csv",
-    "llm_irr":                  PAPER_REPO / "data/s10/llm_fewshot_dsv4flash_nt.jsonl",   # separate IRR-only LLM run; not used for kappa
-    # Iteration 2 annotations (done 2026-04-30 to 2026-05-04). They reproduce the paper Table 3 kappa exactly. The copies in
-    # the paper repo (data/s10/irr_annotation_a1.xlsx = an earlier round of A1, irr_annotation_a2.csv = a later round of A2)
-    # are from different rounds and must not be used for agreement (I-54).
-    "irr_a1":                    ROOT / "data/annotation/irr_iteration2_annotator_a1.xlsx",
-    "irr_a2":                    ROOT / "data/annotation/irr_iteration2_annotator_a2.csv",
-    "irr_sample":                ROOT / "data/annotation/irr_sample_241.csv",
-    "perspective_q":             PAPER_REPO / "data/s10/s10_perspective_mentee.csv",
-    # Items 14 and 15: used only for validation
-    "wmf_mentorship_state":      TWO_SLS_INPUTS / "z_mentorship_state.tsv",
-    "wmf_mentor_mentee_sql":     TWO_SLS_INPUTS / "cov_mentor_mentee_assignment_20260530.sql.gz",
-    "val_mentee_registration":   TWO_SLS_INPUTS / "val_mentee_registration.jsonl",
-    "val_mentee_contribs":       TWO_SLS_INPUTS / "val_mentee_contribs.jsonl",
-    "setmentor_log_partial":     TWO_SLS_INPUTS / "z_manual_claims_log.jsonl",
-    # paper source file (used by the M9 check)
+    # Mentor roster: every revision of the roster page before the cutoff (wikitext period and JSON period)
+    "roster_revisions_wikitext": INPUT / "roster/roster_revisions_wikitext.jsonl",
+    "roster_revisions_json":     INPUT / "roster/roster_revisions_json.jsonl",
+    "roster_uid_map":            INPUT / "roster/roster_uid_map.json",
+    "eval2_mentor_list":         INPUT / "roster/earlier_frozen_mentor_list.jsonl",   # an earlier frozen roster, for comparison
+    # Questions: every revision tagged as a mentorship question, and the conversations as first collected
+    "eval2_tagged_raw":          INPUT / "questions/tagged_question_revisions.jsonl",
+    "eval2_conversations":       INPUT / "questions/tagged_conversations.jsonl",
+    "tag_scan_checkpoint":       INPUT / "questions/tag_scan_checkpoint.txt",
+    # Newcomer activity as first collected (2026-04-23 to 24, stored by user name). Not released (8.7 GB): the
+    # released data contains its extract, data/interim/m3/s6/, so index_s6 can be skipped.
+    "s6_profiles":               INPUT / "activity_full/user_profiles.jsonl",
+    "s6_contribs":               INPUT / "activity_full/user_contribs.jsonl",
+    "s6_logevents":              INPUT / "activity_full/user_logevents.jsonl",
+    "s6_abuselog":               INPUT / "activity_full/user_abuselog.jsonl",
+    # Qwen text-embedding-v4 embeddings of questions and first replies (keyed by paper-version conversation id)
+    "emb_q":                     INPUT / "embeddings/question_embeddings.npz",
+    "emb_q_meta":                INPUT / "embeddings/question_embeddings_meta.jsonl",
+    "emb_r":                     INPUT / "embeddings/reply_embeddings.npz",
+    "emb_r_meta":                INPUT / "embeddings/reply_embeddings_meta.jsonl",
+    # Paper-version files: reused where the text is unchanged, and used to replicate and compare with the paper
+    "paper_s7":                  INPUT / "paper_version/conversations_cleaned.jsonl",
+    "paper_s11":                 INPUT / "paper_version/question_features.jsonl",
+    "paper_npz":                 INPUT / "paper_version/psm_dataset.npz",
+    "paper_reply_features":      INPUT / "paper_version/reply_features.csv",
+    "perspective_q":             INPUT / "paper_version/perspective_scores_misaligned.csv",   # misaligned, not reused (I-59)
+    # Question-type annotation (kept in the git repository, see data/annotation/README.md)
+    "llm_annotations":           DATA / "annotation/llm_labels_corpus_v2.jsonl",
+    "codebook_prompt":           DATA / "annotation/codebook_llm_prompt.md",
+    "llm_fewshot":               DATA / "annotation/llm_fewshot_examples.xlsx",
+    "irr_gold":                  DATA / "annotation/irr_consensus_labels.csv",
+    "irr_a1":                    DATA / "annotation/irr_iteration2_annotator_a1.xlsx",
+    "irr_a2":                    DATA / "annotation/irr_iteration2_annotator_a2.csv",
+    "irr_sample":                DATA / "annotation/irr_sample_241.csv",
+    # Independent collection by an earlier project (June 2026). Optional, not released: the check notebooks use it
+    # only to cross-check our edits, registration times and claim log, and skip the cells when it is missing.
+    "val_mentee_registration":   INPUT / "validation/mentee_registration.jsonl",
+    "val_mentee_contribs":       INPUT / "validation/mentee_contribs.jsonl",
+    "setmentor_log_partial":     INPUT / "validation/manual_claims_log.jsonl",
+    # Paper source text, used only by tools/build_paper_numbers.py (not released)
     "paper_md":                  WIKI_BASE / "2026-9/2026-9-24/paper.md",
 }
 

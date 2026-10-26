@@ -563,28 +563,32 @@ matters is the other direction: **are the validation edits in our data?** (cover
 99%). Edits only in the validation data are mostly from renames (fetched under an old name) or pages deleted later.
 """),
 code(r'''
-t = time.time()
-mine = edits.groupby("uid").revid.apply(set).to_dict()
-both = only_s6 = only_val = 0; n_users = 0
-per_user = []
-for line in open(config.EXTERNAL["val_mentee_contribs"], "rb"):
-    r = orjson.loads(line)
-    es = r.get("edits") or []
-    if not es: continue
-    uid = es[0].get("userid")
-    if uid not in mine: continue
-    val = {e["revid"] for e in es if e.get("timestamp", "") < CUT and e.get("userid") == uid}
-    a = mine[uid]
-    n_users += 1; both += len(a & val); only_s6 += len(a - val); only_val += len(val - a)
-    per_user.append((uid, len(a), len(val), len(a & val)))
-tot = both + only_s6 + only_val
-recall = both / (both + only_val)
-print(f"people in both {n_users:,}; same revids {both:,}, only in our data {only_s6:,}, only in validation data {only_val:,}")
-print(f"share of validation edits found in our data: {recall:.4%} (target > 99%); agreement on the union: {both / tot:.4%}")
-pu = pd.DataFrame(per_user, columns=["uid", "n_mine", "n_val", "n_both"])
-pu["recall"] = pu.n_both / pu.n_val
-print("people with coverage < 99%:", int((pu.recall < .99).sum()), f"({time.time() - t:.0f} s)")
-display(pu.sort_values("recall").head(10))
+if not config.EXTERNAL["val_mentee_contribs"].exists():
+    print("skipped: the optional validation data (data/input/validation/) is not available")
+    recall = both = tot = n_users = None
+else:
+    t = time.time()
+    mine = edits.groupby("uid").revid.apply(set).to_dict()
+    both = only_s6 = only_val = 0; n_users = 0
+    per_user = []
+    for line in open(config.EXTERNAL["val_mentee_contribs"], "rb"):
+        r = orjson.loads(line)
+        es = r.get("edits") or []
+        if not es: continue
+        uid = es[0].get("userid")
+        if uid not in mine: continue
+        val = {e["revid"] for e in es if e.get("timestamp", "") < CUT and e.get("userid") == uid}
+        a = mine[uid]
+        n_users += 1; both += len(a & val); only_s6 += len(a - val); only_val += len(val - a)
+        per_user.append((uid, len(a), len(val), len(a & val)))
+    tot = both + only_s6 + only_val
+    recall = both / (both + only_val)
+    print(f"people in both {n_users:,}; same revids {both:,}, only in our data {only_s6:,}, only in validation data {only_val:,}")
+    print(f"share of validation edits found in our data: {recall:.4%} (target > 99%); agreement on the union: {both / tot:.4%}")
+    pu = pd.DataFrame(per_user, columns=["uid", "n_mine", "n_val", "n_both"])
+    pu["recall"] = pu.n_both / pu.n_val
+    print("people with coverage < 99%:", int((pu.recall < .99).sum()), f"({time.time() - t:.0f} s)")
+    display(pu.sort_values("recall").head(10))
 '''),
 md("""
 ### 4.3 Independent registration times (val_mentee_registration, June 2026, by uid)
@@ -592,12 +596,16 @@ md("""
 Registration time never changes, so it must agree with the profile for everyone found in both.
 """),
 code(r'''
-vreg = {r["userid"]: r.get("registration") for r in iter_jsonl(config.EXTERNAL["val_mentee_registration"]) if r.get("userid")}
-common = [u for u in P.index if u in vreg and vreg[u]]
-dis = [(u, P.at[u, "registration"], vreg[u]) for u in common if P.at[u, "registration"] != vreg[u]]
-print(f"askers in the June registration data: {len(common):,}; registration differs for {len(dis)}")
-print("first differences (uid, ours, June):", dis[:10])
-reg_agree = 1 - len(dis) / max(len(common), 1)
+if not config.EXTERNAL["val_mentee_registration"].exists():
+    print("skipped: the optional validation data (data/input/validation/) is not available")
+    reg_agree = None
+else:
+    vreg = {r["userid"]: r.get("registration") for r in iter_jsonl(config.EXTERNAL["val_mentee_registration"]) if r.get("userid")}
+    common = [u for u in P.index if u in vreg and vreg[u]]
+    dis = [(u, P.at[u, "registration"], vreg[u]) for u in common if P.at[u, "registration"] != vreg[u]]
+    print(f"askers in the June registration data: {len(common):,}; registration differs for {len(dis)}")
+    print("first differences (uid, ours, June):", dis[:10])
+    reg_agree = 1 - len(dis) / max(len(common), 1)
 '''),
 md("""
 ## 5. Tracer samples and random samples: raw records next to processed values
@@ -833,13 +841,14 @@ md("## 8. Summary (written to results/m3_report.json, used by M9)"),
 code(r'''
 report = {"n_askers": len(prof), "source": prof.source.value_counts().to_dict(), "n_edits": len(edits),
           "creation_action": {str(k): int(v) for k, v in prof.creation_action.value_counts(dropna=False).items()},
-          "val_recall": round(recall, 6), "val_union_agreement": round(both / tot, 6), "val_users": n_users}
+          "val_recall": None if recall is None else round(recall, 6),
+          "val_union_agreement": None if recall is None else round(both / tot, 6), "val_users": n_users}
 (config.RESULTS / "m3_report.json").write_text(json.dumps(report, indent=1, ensure_ascii=False))
 print(json.dumps(report, indent=1, ensure_ascii=False))
 n_fail = sum(not ok for _, ok in ck.items)
 print(f"\ninvariants: {len(ck.items) - n_fail} / {len(ck.items)} OK | random people matching raw: "
       f"{sum(ok for *_, ok in random_results)} / {len(random_results)} | random reverts: {sum(rev_ok)} / {len(rev_ok)} | "
-      f"registration agrees with June data: {reg_agree:.4%} | revert-time coverage of candidates so far: {cov_all:.1%}")
+      f"registration agrees with June data: {'n/a' if reg_agree is None else format(reg_agree, '.4%')} | revert-time coverage of candidates so far: {cov_all:.1%}")
 print(f"notebook run time {time.time() - T0:.0f} s")
 '''),
 ]

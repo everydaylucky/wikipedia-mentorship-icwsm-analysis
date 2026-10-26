@@ -340,20 +340,24 @@ md("""
 the cutoff should be in our claim table with the same claimed name, claimer and previous mentor.
 """),
 code(r'''
-z = [r for r in iter_jsonl(config.EXTERNAL["setmentor_log_partial"]) if r.get("action") == "claimmentee" and r.get("timestamp", "") < CUT]
-zin = [r for r in z if r["logid"] in C.index]
-zbad = [r for r in zin if (norm_name(r.get("mentee")), norm_name(r.get("actor")), norm_name(r.get("previous_mentor")))
-        != (C.at[r["logid"], "mentee_name"], C.at[r["logid"], "claimer"], C.at[r["logid"], "previous_mentor"])]
-print(f"independent claim entries before the cutoff: {len(z)}; found in ours: {len(zin)} ({len(zin) / max(len(z), 1):.2%}); fields differ: {len(zbad)}")
-pairs = Counter()
-for r in zbad:
-    for f, zf in (("mentee_name", "mentee"), ("claimer", "actor"), ("previous_mentor", "previous_mentor")):
-        if norm_name(r.get(zf)) != C.at[r["logid"], f]: pairs[(f, norm_name(r.get(zf)), C.at[r["logid"], f])] += 1
-print("differences as (field, June name, our name): number of rows")
-for k, v in pairs.items(): print("  ", k, v)
-print("A name that differs in every row in the same way is a rename between June and October: the API returns the")
-print("user's current name in the user field of old log entries. The claimer_uid in our table does not change with a rename.")
-print("missing from ours:", [r["logid"] for r in z if r["logid"] not in C.index][:10])
+if not config.EXTERNAL["setmentor_log_partial"].exists():
+    print("skipped: the optional validation data (data/input/validation/) is not available")
+    z = zin = zbad = []
+else:
+    z = [r for r in iter_jsonl(config.EXTERNAL["setmentor_log_partial"]) if r.get("action") == "claimmentee" and r.get("timestamp", "") < CUT]
+    zin = [r for r in z if r["logid"] in C.index]
+    zbad = [r for r in zin if (norm_name(r.get("mentee")), norm_name(r.get("actor")), norm_name(r.get("previous_mentor")))
+            != (C.at[r["logid"], "mentee_name"], C.at[r["logid"], "claimer"], C.at[r["logid"], "previous_mentor"])]
+    print(f"independent claim entries before the cutoff: {len(z)}; found in ours: {len(zin)} ({len(zin) / max(len(z), 1):.2%}); fields differ: {len(zbad)}")
+    pairs = Counter()
+    for r in zbad:
+        for f, zf in (("mentee_name", "mentee"), ("claimer", "actor"), ("previous_mentor", "previous_mentor")):
+            if norm_name(r.get(zf)) != C.at[r["logid"], f]: pairs[(f, norm_name(r.get(zf)), C.at[r["logid"], f])] += 1
+    print("differences as (field, June name, our name): number of rows")
+    for k, v in pairs.items(): print("  ", k, v)
+    print("A name that differs in every row in the same way is a rename between June and October: the API returns the")
+    print("user's current name in the user field of old log entries. The claimer_uid in our table does not change with a rename.")
+    print("missing from ours:", [r["logid"] for r in z if r["logid"] not in C.index][:10])
 '''),
 md("""
 ### 4.3 Paper sample

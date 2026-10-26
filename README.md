@@ -59,28 +59,28 @@ Copy `.env.example` to `.env` and fill it in:
 
 ## Input data
 
-The pipeline starts from data that was collected from Wikipedia before the cutoff, and then checks and completes it
-against Wikipedia as it was at the cutoff. The input files (mentor roster revisions, tagged question revisions,
-newcomer activity, and the paper-version files used for comparison) are on Hugging Face:
-<https://huggingface.co/datasets/mars1989/wikipedia-mentorship-icwsm-data>.
+The pipeline starts from data collected from Wikipedia before the cutoff, then checks and completes it against
+Wikipedia as it was at the cutoff. These input files are on Hugging Face, in the same layout as the `data/` folder of
+this repository. Download them into `data/`:
 
 ```bash
 pip install huggingface_hub
-huggingface-cli download mars1989/wikipedia-mentorship-icwsm-data --repo-type dataset --local-dir parent/
-cd parent
-git clone https://github.com/everydaylucky/wikipedia-mentorship-icwsm-analysis.git
-cp -R 2wiki-mentor-github-main/data/. wikipedia-mentorship-icwsm-analysis/data/
+huggingface-cli download mars1989/wikipedia-mentorship-icwsm-data --repo-type dataset --local-dir data
 ```
 
-The code looks for the input folders next to itself (in `parent/`). To keep them elsewhere, set the environment
-variable `WIKI_BASE` to the folder that holds them.
+This gives:
 
-The dataset already includes the output of `pipeline.m3_activity.index_s6` (the newcomer activity of every asker),
-because the original activity files it reads are 8.7 GB. **Skip `index_s6`** and start M3 with `collect_topup`.
-The rest of the raw data (talk-page parses, top-up histories, revert times, API cache) is rebuilt by the online
-steps below.
+| Folder | Contents |
+|---|---|
+| `data/input/roster/` | Every revision of the mentor roster page |
+| `data/input/questions/` | Every revision tagged as a mentorship question, and the conversations as first collected |
+| `data/input/embeddings/` | Question and reply embeddings |
+| `data/input/paper_version/` | Files of the paper's first analysis version, used for reuse and comparison |
+| `data/interim/m3/s6/` | Newcomer activity of every asker (so `index_s6` is skipped) |
+| `data/raw/` | Manual mentor list revisions, the mentor claim log, registration times, site settings |
 
-The annotation files are small and are kept in this repository (`data/annotation/`).
+The rest of the raw data (talk-page parses, top-up histories, revert times, the API cache) is rebuilt by the online
+steps below. The annotation files are small and are kept in this repository (`data/annotation/`).
 
 ## Running the pipeline
 
