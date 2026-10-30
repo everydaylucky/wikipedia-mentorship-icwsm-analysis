@@ -9,7 +9,7 @@ The notebook follows the fixed 8 sections of PLAN.md section 12:
 
 How to run:
     python checks/build_m4_check.py          # writes the notebook
-    python checks/build_m4_check.py --run    # writes it and runs it from top to bottom (under a minute)
+    python checks/build_m4_check.py --run    # writes it and runs it from top to bottom (one to three minutes)
 """
 from __future__ import annotations
 
@@ -22,6 +22,54 @@ from checks._nbgen import code, md, run_as_script, write_notebook  # noqa: E402
 CELLS = [
 md("""
 # M4 assignment eligibility: check notebook
+
+## Plain-language guide
+
+**Why the study needs this module.** The paper compares newcomers whose assigned mentor replied with newcomers whose
+mentor did not. That comparison is only fair if the mentor was handed out by chance. On English Wikipedia the
+software normally picks a mentor at random when a person creates an account, but there are exceptions: some accounts
+were made before the mentorship program existed, some were made by another person or copied from another wiki, and
+sometimes a mentor picks a newcomer on purpose ("claims" them). M4 finds, for every newcomer who asked their mentor a
+question (an "asker"), whether their mentor was really assigned at random. Only those people (`eligible = True`)
+enter the main analysis.
+
+**What raw data it uses.** M4 collects one new raw file: the mentor claim log, every entry of the "claim mentee"
+action in Wikipedia's public log (Special:Log, read through the MediaWiki API `list=logevents`). It was downloaded on
+2026-10-06 and has 1,055 entries since the program started in 2021; the 815 entries before the data cutoff
+(2026-04-20T14:00Z) are used. Each entry says who claimed which account, from which previous mentor, when, and the
+comment the mentor typed. Everything else comes from earlier modules: the askers and their first question (M2), each
+asker's registration time and account creation log entry (M3), and the timeline of the mentor list (M1).
+
+**What it does, step by step.**
+
+1. Takes every asker from M2 and finds their first question.
+2. Cleans the claim log: keeps entries before the cutoff, turns each claimed user name into a user ID (following
+   renames), and labels each claim as `bulk` (an automatic random move after a mentor quit), `self_transfer` (a
+   mentor moving people between two of their own accounts) or `manual` (a mentor chose this person). It also marks
+   claims whose comment says the account is the mentor's own alternate or test account.
+3. For each asker, checks five exclusion rules in a fixed order (listed below). The first rule that holds is the
+   reason for exclusion; a person with no reason is eligible.
+4. Adds two extra flags for robustness checks and four diagnostic flags about the mentor list at registration time.
+
+**What it outputs (this run).**
+
+* `data/interim/m4/eligibility.parquet`: one row per asker, **37,095 rows**. Key columns: the asker's user ID, the
+  first question and its time, registration time, how the account was created, `eligible` (True or False), the
+  exclusion reason(s), and the robustness and diagnostic flags. 36,094 askers are eligible.
+* `data/interim/m4/claims.parquet`: one row per claim log entry before the cutoff, **815 rows**. Key columns: when,
+  who claimed whom, the previous mentor, the comment, the label (`kind`: 450 manual, 358 bulk, 7 self transfer) and
+  whether it is an alternate or test account.
+* `results/m4_report.json`: the summary counts written in section 8.
+
+**How to read this notebook.** The outputs below are saved from the run on the final data (cutoff
+2026-04-20T14:00Z); you do not need to run anything. A line `[OK ]` means a check passed and `[FAIL]` means it did
+not (there are no failures in this run). An **invariant** is a rule that must hold for every row; we test it by
+recomputing the value with separate, simple code written in this notebook and counting rows that disagree. A
+**tracer** is a hand-picked real log entry whose correct answer we know, followed through the processing. A **random
+sample** shows a few randomly drawn people or log entries with all raw inputs next to the decision, plus links to
+Wikipedia so anyone can check them by eye.
+
+## Technical description
 
 **What the module does.** `pipeline/m4_eligibility/build_eligibility.py` decides, for every asker, whether their
 mentor was **assigned at random when they registered**. Only those people (`eligible = True`) enter the main analysis.
@@ -45,10 +93,14 @@ It also stores `eligible_unrestricted` (eligible without the D10 rules 2 and 3, 
 (Appendix Table A), the quasi-random assignment argument (Sec 3), and the robustness checks that use
 `eligible_unrestricted` and `claimed_after_question`.
 
-**How to use this notebook.** Run it from top to bottom (under a minute). Section 3 re-derives every column with
+**How to use this notebook.** Run it from top to bottom (about one to three minutes). Section 3 re-derives every column with
 separate simple code written in this notebook and counts mismatches over all askers. Section 5 shows, for random
 people, every input of the decision next to the decision, with links to the logs on Wikipedia. Change `SEED` in the
 setup cell to draw new random people.
+"""),
+md("""
+**What this checks.** This setup cell loads the M4 outputs and the inputs from M1, M2 and M3, and prints the basic
+sizes. It is not a test by itself, but every later check uses these tables.
 """),
 code(r'''
 # ── 1. Setup ──────────────────────────────────────────────────────────────
@@ -93,10 +145,17 @@ def clean(v):
 print(f"askers {len(e):,} | eligible {int(e.eligible.sum()):,} | claim log rows before the cutoff {len(c):,} | raw claim log entries {len(raw_claims):,}")
 '''),
 md("""
+**What the output shows.** In the run on the final data (cutoff 2026-04-20T14:00Z) there are 37,095 askers, of whom
+36,094 (97.3%) are eligible, so M4 removes 1,001 people. The raw claim log has 1,055 entries; 815 are before the
+cutoff and are used. The other 240 happened after the cutoff and are ignored on purpose, because the study only
+looks at events up to the cutoff.
+"""),
+md("""
 ### Data dictionary
 
-"Checked in" names the cell that verifies the column (3.x are checks over all rows with separate code, 5.x are random
-raw-versus-processed examples). The cell confirms that the dictionary lists every column in the file.
+**What this checks.** The table explains, in words, every column of the two output files and names the cell that
+verifies it ("3.x" are checks over all rows with separate code, "5.x" are random raw-versus-processed examples). The
+cell also confirms that the dictionary lists exactly the columns in each file, so no column goes unexplained.
 """),
 code(r'''
 DICT = {}
@@ -139,7 +198,17 @@ def show_dict(name, cols):
 show_dict("eligibility", e.columns)
 show_dict("claims", c.columns)
 '''),
-md("## 2. Files and manifest"),
+md("""
+**What the output shows.** Both dictionaries match their files exactly (2 OK lines). The eligibility file has 17
+columns and the claims file has 11.
+"""),
+md("""
+## 2. Files and manifest
+
+**What this checks.** When M4 runs it writes a "manifest", a small record of which files it read and wrote, when, and
+the main counts. We check that the manifest uses the same cutoff as the rest of the study, that its counts equal the
+actual tables, and that M4 ran after M1, M2 and M3 (so it used their latest outputs, not stale ones).
+"""),
 code(r'''
 man = json.loads((M4 / "manifest.json").read_text())
 print("finished:", man["finished_at"], "| cutoff:", man["data_cutoff"], "| elapsed:", man["elapsed_sec"], "s")
@@ -154,9 +223,21 @@ print("upstream finished:", up)
 ck.add("M4 ran after M1, M2 and M3 (it uses their current outputs)", all(t <= man["finished_at"] for t in up.values()))
 '''),
 md("""
+**What the output shows.** All 4 checks pass. The cutoff is 2026-04-20T14:00:00Z and M4 finished after M1, M2 and M3.
+The exclusion counts are: 452 accounts created by another person, 225 automatically created (copied from another
+wiki), 218 registered before the program started on 2021-05-04, 82 with no creation log, 19 claimed by hand before
+their first question, 4 alternate or test accounts, and 1 forced local account. Zero temporary accounts appear, which
+is expected because temporary accounts do not get a mentor.
+"""),
+md("""
 ## 3. Invariants (all should be OK)
 
 ### 3.1 Inputs copied from M2 and M3
+
+**What this checks.** M4 copies some facts from earlier modules: each asker's first question (from M2) and their
+registration time and creation action (from M3). We check that there is exactly one row per asker, that the set of
+askers equals M2's, and that every copied value equals its source. A wrong copy here would silently put the wrong
+people in or out of the sample.
 """),
 code(r'''
 first = q.sort_values(["q_ts", "question_revid"]).groupby("mentee_uid").head(1).set_index("mentee_uid")
@@ -169,7 +250,16 @@ for a, b in (("registered_at", "registration"), ("creation_action", "creation_ac
     ck.add(f"{a} equals the M3 profile ({n_bad} differ)", n_bad == 0)
 '''),
 md("""
+**What the output shows.** All 6 checks pass with 0 differences for all 37,095 askers.
+"""),
+md("""
 ### 3.2 Claim log rows: copied from the raw log, and classified again with separate code
+
+**What this checks.** First, that every claim row before the cutoff in M4's table is exactly the raw log entry
+(same IDs, times, names, comments). Second, that the labels (`bulk`, `self_transfer`, `manual`, and alternate or
+test account) come out the same when we apply our own simple rules, written below, to every one of the 815 rows.
+Third, that claimed user names were turned into the right user IDs. These labels decide who counts as "chosen on
+purpose by a mentor", so errors here would bias the sample.
 
 Our own simple rules (written here, not imported from the pipeline):
 
@@ -252,9 +342,16 @@ print(f"claims on asker names known from M2/M3: {len(kn)}; others resolved throu
       f"(their uids are asker uids for {int(c[~c.index.isin(kn.index)].mentee_uid.isin(E.index).sum())} rows)")
 '''),
 md("""
+**What the output shows.** All 13 checks pass. The 815 claim rows match the raw log field by field (0 differences),
+and our separate rules give the same label for every row (0 differences for `kind`, 0 for alternate or test). All
+claimed names got a user ID. For 77 rows the name is already known from M2 or M3 and the ID agrees; the other 738
+were looked up through Wikipedia's user data or rename log, and only 10 of those are askers. In other words, most
+claimed accounts never asked their mentor a question, so they do not affect the sample at all.
+"""),
+md("""
 ### 3.3 Eligibility re-derived for **all** askers with separate code
 
-We apply the five rules in the documented order using our own classification of the claims from 3.2, and compare
+**What this checks.** This is the core test of the module. We apply the five rules in the documented order using our own classification of the claims from 3.2, and compare
 every decision column. A mismatch here would mean either the pipeline or this notebook applies a rule differently.
 """),
 code(r'''
@@ -291,8 +388,17 @@ ck.add("every eligible asker registered on or after 2021-05-04", (e[e.eligible].
 ck.add("eligible implies eligible_unrestricted", (~e.eligible | e.eligible_unrestricted).all())
 '''),
 md("""
+**What the output shows.** All 12 checks pass: for all 37,095 askers our own decision equals the stored one in every
+column (0 mismatches). Every eligible asker registered the account themselves and did so on or after 2021-05-04.
+Everyone eligible is also eligible under the looser robustness rule (`eligible_unrestricted`, 37,056 people), as it
+should be, since the looser rule only drops conditions.
+"""),
+md("""
 ### 3.4 Diagnostics: the primary mentor's roster state at registration (from the M1 periods)
 
+**What this checks.** For each asker we look up, in the M1 timeline of the mentor list, whether their mentor was on
+the list, and in the automatic assignment pool, at the moment the asker registered. These flags are only for
+diagnosis and do not exclude anyone. We recompute all four flags with separate code and compare.
 A period covers time t when `start <= t < end` (an empty end means still on the list).
 """),
 code(r'''
@@ -317,13 +423,25 @@ for f in ("mentor_on_roster_at_registration", "mentor_in_auto_pool_at_registrati
 ck.add("period times have the ISO format (so text comparison is time comparison)",
        periods.start.str.match(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$").all() and periods.end.dropna().str.match(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$").all())
 '''),
+md("""
+**What the output shows.** All 5 checks pass with 0 mismatches. The counts of these flags are discussed in section 7.
+"""),
+md("""
+**Summary of the invariant checks.** The next cell counts every OK and FAIL line from sections 1 to 3.
+"""),
 code(r'''
 ck.report()
 '''),
 md("""
+**What the output shows.** 42 of 42 checks passed; nothing failed.
+"""),
+md("""
 ## 4. Comparison with the previous report, an independent claim log, and the paper sample
 
 ### 4.1 Previous report
+
+**What this checks.** The main counts now are compared with those saved in `results/m4_report.json` by the previous
+run of this notebook. Any change would mean the data or the code changed since then and should be explained.
 """),
 code(r'''
 now_vals = {"n_askers": len(e), "n_eligible": int(e.eligible.sum()), "n_eligible_unrestricted": int(e.eligible_unrestricted.sum()),
@@ -334,10 +452,16 @@ if prev_report:
                           for k, v in now_vals.items()]))
 '''),
 md("""
+**What the output shows.** All six counts are the same as before ("same" is True in every row): 37,095 askers,
+36,094 eligible, 37,056 eligible under the looser rule, 40 claimed after their question, and 450 manual, 358 bulk
+and 7 self-transfer claims. So the results are stable from run to run.
+"""),
+md("""
 ### 4.2 Independent partial claim log (2SLS pipeline, June 2026)
 
-`z_manual_claims_log.jsonl` was collected separately and holds part of the claim log. Every claim in it that is before
-the cutoff should be in our claim table with the same claimed name, claimer and previous mentor.
+**What this checks.** `z_manual_claims_log.jsonl` was downloaded separately in June 2026 for an earlier analysis and
+holds part of the claim log. It is an independent copy, so it can catch download errors. Every claim in it that is
+before the cutoff should be in our claim table with the same claimed name, claimer and previous mentor.
 """),
 code(r'''
 if not config.EXTERNAL["setmentor_log_partial"].exists():
@@ -360,8 +484,15 @@ else:
     print("missing from ours:", [r["logid"] for r in z if r["logid"] not in C.index][:10])
 '''),
 md("""
+**What the output shows.** All 709 claims in the June copy are in our table (100%), and none is missing. Ten rows
+differ, but only in the claimer's name, and always in the same two ways (7 rows and 3 rows). These are two mentors who
+renamed their accounts between June and October: Wikipedia shows the current name on old log entries. The claimer's
+user ID does not change with a rename, so these differences do not affect any decision.
+"""),
+md("""
 ### 4.3 Paper sample
 
+**What this checks.** How the new eligibility rules change the sample compared with the earlier version of the paper.
 The paper's final sample (psm_dataset.npz, N = 35,381) is matched by question revid to our first questions. The paper
 excluded people by "mentor weight at question time >= 1"; the new rules are random assignment at registration
 (R2.1, D10) and manual claims (R3).
@@ -377,11 +508,24 @@ print("\nreasons for people in the paper sample who are excluded now:")
 print(e[e.in_paper & ~e.eligible].exclude_reason.value_counts().to_string())
 '''),
 md("""
+**What the output shows.** Of the 35,381 people in the earlier paper sample, 33,860 match a first question here.
+Of those, 32,984 are still eligible and 876 (2.6%) are now excluded, mostly for how the account was created (410
+created by another person, 183 copied from another wiki, 73 with no creation log) or for registering before
+2021-05-04 (191); only 15 are excluded for a manual claim and 4 as alternate or test accounts. In the other direction,
+3,110 people are eligible now but were not in the paper sample (the earlier sample used a different rule and earlier
+data). The 1,521 paper rows that do not match a first question here are not explained by this check; a likely cause
+is that the earlier paper row was not the person's earliest question in the new M2 data, but a reviewer may want to
+confirm this.
+"""),
+md("""
 ## 5. Tracer samples and random samples
 
 ### 5.1 Fixed tracer claim logs
 
-Open the links and compare with the Special:Log text.
+**What this checks.** Five real claim log entries were picked by hand because each is a typical case: a bulk transfer
+after a mentor left, a claim of people met at an edit-a-thon, a claim after an email request, a claim after an
+adoption request, and a mentor claiming their own alternate account. For each, we print the entry, M4's label, our
+label and the asker's resulting decision. Open the links and compare with the Special:Log text.
 """),
 code(r'''
 tracer_logids = {179458284: "bulk transfer (Asilvering)", 145507520: "edit-a-thon claim (Voidxor)", 176026789: "email request (SignedInteger)",
@@ -397,9 +541,18 @@ for lid, why in tracer_logids.items():
     else: print("  (this account is not an asker)")
 '''),
 md("""
+**What the output shows.** All five are labeled as expected: the transfer is `bulk`, the other four are `manual`, and
+only the alternate account is marked as alternate or test. Two claimed accounts never asked a question, so they do not
+affect the sample. The email-request and adoption-request askers are excluded (`manual_claim_before_question`)
+because the claim came before their first question; in the email case the claim came less than two minutes before
+the question, which is correct by the rule. The alternate account is excluded as `alt_or_test_account`.
+"""),
+md("""
 ### 5.2 Random askers: every decision input next to the decision
 
-For each person: the creation log record from M3 (with a link), the registration time, the first question (with a
+**What this checks.** Five randomly drawn eligible askers (and, in the next cell, up to five for each exclusion
+reason), with all raw inputs printed next to the decision, so a reader can confirm the decision by eye and through the
+Wikipedia links. For each person: the creation log record from M3 (with a link), the registration time, the first question (with a
 link), every claim with its time relative to the first question, our classification, and the alt/test evidence.
 Then our own decision (3.3) next to the stored one.
 """),
@@ -430,6 +583,11 @@ def show_asker(uid):
 print("### eligible askers")
 for uid in pick(e[e.eligible], N_RANDOM, SEED).mentee_uid: show_asker(uid)
 '''),
+md("""
+**What the output shows.** Each of the five eligible askers registered the account themselves (`newusers/create`)
+after 2021-05-04, has no claims, and our decision matches the stored one in every field. The next cell does the same
+for each exclusion reason.
+"""),
 code(r'''
 for reason in e.exclude_reason.dropna().value_counts().index:
     print(f"\n\n### excluded: {reason} ({int((e.exclude_reason == reason).sum())} askers)")
@@ -437,9 +595,16 @@ for reason in e.exclude_reason.dropna().value_counts().index:
 print(f"\nrandom askers: decision matches for {sum(random_ok)} of {len(random_ok)}", "" if all(random_ok) else "-> MISMATCH, see above")
 '''),
 md("""
+**What the output shows.** All 35 random askers (5 eligible plus up to 5 per reason; there are only 4 alternate or
+test cases and 1 forced local account) match in every field. For example, the "created by another person" cases show a
+creation log of type `byemail` made by a different user, which is exactly what the rule looks for. Some people
+registered long before their first question (for example in 2022 and asked in 2023); this is fine because the mentor
+is drawn at registration, not at the question.
+"""),
+md("""
 ### 5.3 Random claim log rows: raw entry next to the classification
 
-For each kind (and for rows judged to be an alt or test account), the raw log entry as downloaded, the stored
+**What this checks.** For each kind (and for rows judged to be an alt or test account), the raw log entry as downloaded, the stored
 classification, and our classification with the reason in words.
 """),
 code(r'''
@@ -458,10 +623,16 @@ for name, g in groups.items():
 print(f"\nrandom claim rows: classification matches for {sum(claim_ok)} of {len(claim_ok)}", "" if all(claim_ok) else "-> MISMATCH")
 '''),
 md("""
+**What the output shows.** All 20 random claim rows (5 each from 358 bulk, 7 self-transfer, 450 manual and 46
+alternate or test rows) get the same label from our rules as from M4, with the reason printed in words.
+"""),
+md("""
 ## 6. Edge-case lists
 
-The done criteria ask a person to read every comment classified as a manual claim. They are grouped by comment below.
-Then all alt or test accounts, all self transfers, and how claims affect askers.
+**What this checks.** Automatic rules can misread free-text comments, so the unusual cases are listed in full for a
+person to read. The done criteria ask a person to read every comment classified as a manual claim. They are grouped
+by comment below. Then all alt or test accounts, the claims that mention alt/sock/bot/test but were not judged to be
+the mentor's own account, all self transfers, and how claims affect askers.
 """),
 code(r'''
 summ = json.loads((M4 / "_issues" / "summary.json").read_text())
@@ -477,6 +648,20 @@ display(mention[["logid", "claimer", "mentee_name", "comment"]].assign(comment=l
 print("\nmoves between two accounts of the same mentor (self_transfer):")
 display(c[c.kind == "self_transfer"][["ts", "previous_mentor", "claimer", "mentee_name", "comment"]])
 '''),
+md("""
+**What the output shows.** There are 450 manual claims; the most common comments are empty (40), short reasons such
+as "Interested in Wikipedia!", requests from the newcomer, edit-a-thon or training contacts, and tests. 46 claims are
+judged to be the mentor's own alternate or test account. The list of claims that mention alt, sock, bot or test but
+were *not* judged the mentor's own account is the main place to look for errors: many are other people's accounts
+claimed "for testing" (for example staff accounts or other experienced editors), which stay `manual` and still count as
+a purposeful claim, so they are excluded if the claim came before the question either way. The 7 self transfers are
+mentors moving people between two of their own accounts, which correctly do not count as a new choice. (The
+"UserWarning" printed in this cell is a harmless pandas notice about the search pattern.)
+"""),
+md("""
+**What this checks.** How manual claims touch askers: who was claimed before or after their first question, and
+which claims fall within one hour of the question, where the order is close and worth checking by hand.
+"""),
 code(r'''
 x = e[e.n_manual_claims > 0]
 print("askers with a manual claim", len(x), "| before the question", int(e.exclude_reasons.map(lambda r: "manual_claim_before_question" in list(r)).sum()),
@@ -488,7 +673,23 @@ print("askers whose first question and a manual claim are within one hour of eac
 near = cc[(cc.kind == "manual") & ((pd.to_datetime(cc.ts) - pd.to_datetime(cc.first_q_ts)).abs() < pd.Timedelta(hours=1))]
 display(near[["mentee_name", "ts", "first_q_ts", "claimer", "comment"]])
 '''),
-md("## 7. Distributions and diagnostics"),
+md("""
+**What the output shows.** 76 askers have at least one manual claim: 37 were claimed before their first question and
+40 after (one person has both). Only 19 have `manual_claim_before_question` as their main reason, because the other
+18 were already excluded by an earlier rule (for example registered before 2021-05-04). The 40 claimed after the
+question stay in the sample and are flagged for a robustness check. Of all 815 claims, 728 concern accounts that never
+asked a question. 19 claims fall within one hour of the first question; the rule uses the exact timestamps, so a claim
+even one minute before the question excludes the person, which matches the idea that the mentor was then chosen on
+purpose.
+"""),
+md("""
+## 7. Distributions and diagnostics
+
+**What this checks.** The breakdown of decisions by registration year, the counts of the two diagnostic flags
+(`assigned_later`: the mentor was not yet on the mentor list when the person registered; `possible_forcementor`: the
+mentor was on the list but not in the automatic pool, after 2023-02-02, with no claim to explain it), and claims per
+year by kind.
+"""),
 code(r'''
 e["reg_year"] = pd.to_datetime(e.registered_at, utc=True, errors="coerce").dt.year
 display(pd.crosstab(e.reg_year, e.exclude_reason.fillna("eligible")))
@@ -499,7 +700,25 @@ display(e[e.possible_forcementor][["mentee_uid", "registered_at", "first_q_ts", 
 print("\nclaims per year by kind:")
 display(pd.crosstab(c.ts.str[:4], c.kind))
 '''),
-md("## 8. Summary (written to results/m4_report.json, used by M9)"),
+md("""
+**What the output shows.** No account registered before 2021 is eligible, and accounts from 2004 to 2012 show up as
+"no creation log" because that rule is checked first (very old accounts often lack this log entry). Eligible askers
+grow from 789 (2021, from May) to 14,836 (2025). 472 askers are `assigned_later` (their current mentor was not yet a
+mentor when they registered). 381 of them are already excluded for other reasons (218 registered before 2021-05-04,
+80 with no creation log, 64 copied from another wiki, and a few others); these are mostly old accounts that got a
+mentor later, for example when they first opened their homepage. The other 91 are eligible and have almost no claim
+log entries (1 of 91), so their mentor most likely changed through a reassignment that the claim log does not record,
+such as the system redistributing mentees when a mentor left; by the project's rules that is still random, but this
+notebook does not prove it, so it is worth a reviewer's attention (91 people, 0.25% of the sample). Only 2 askers are
+`possible_forcementor`, both eligible; this is too few to change results, but they could be checked by hand. Bulk
+claims first appear in the log in 2023.
+"""),
+md("""
+## 8. Summary (written to results/m4_report.json, used by M9)
+
+**What this checks.** Writes the summary counts used later when the paper's numbers are produced, and prints the
+totals of all checks in this notebook.
+"""),
 code(r'''
 report = {"n_askers": len(e), "n_eligible": int(e.eligible.sum()), "n_eligible_unrestricted": int(e.eligible_unrestricted.sum()),
           "exclude_reason": e.exclude_reason.value_counts().to_dict(), "claimed_after_question": int(e.claimed_after_question.sum()),
@@ -513,6 +732,11 @@ print(f"\ninvariants: {len(ck.items) - n_fail} / {len(ck.items)} OK | random ask
       f"random claim rows matching: {sum(claim_ok)} / {len(claim_ok)}")
 print(f"notebook run time {time.time() - T0:.0f} s")
 '''),
+md("""
+**What the output shows.** In the run on the final data (cutoff 2026-04-20T14:00Z): 42 of 42 invariants OK, 35 of 35
+random askers match, and 20 of 20 random claim rows match. M4 keeps 36,094 of 37,095 askers (97.3%) as having a
+randomly assigned mentor. Of the earlier paper sample, 876 people who matched are now excluded.
+"""),
 ]
 
 

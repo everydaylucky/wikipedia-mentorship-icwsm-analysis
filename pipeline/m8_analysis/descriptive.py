@@ -1,10 +1,11 @@
 """
-descriptive.py: descriptive analyses for the camera-ready (long-term trajectories, conversation depth, reply rates)
+descriptive.py: descriptive analyses for the camera-ready (long-term trajectories, conversation depth, reply rates,
+edit counts, the mentor pool)
 
 Module: M8 (analyses added for the ICWSM 2027 camera-ready, answering the meta-review and reviewers 1 to 3)
 
 1. What it does
-    Three descriptive analyses. None of them is a causal estimate.
+    Five descriptive analyses. None of them is a causal estimate.
     a. Long-term trajectories (meta-review, reviewer 3). For newcomers with at least 365 days between the anchor and
        the data cutoff, activity in the year after the anchor:
          - any edit in days 181 to 365;
@@ -22,21 +23,35 @@ Module: M8 (analyses added for the ICWSM 2027 camera-ready, answering the meta-r
        editing within 14 days is compared between newcomers who wrote back and those who did not, within
        propensity-score strata. Writing back happens after the reply, so this is an association only.
     c. Reply rates (reviewer 2): the share of questions and of sample newcomers without any reply, overall and by year.
+    d. Distribution of the number of article edits in the 14-day window (main analysis sample): share with none,
+       percentiles, maximum, and the share of all edits made by the top 1% of newcomers. The paper uses it to explain
+       why the mean number of edits is estimated imprecisely.
+    e. The mentor pool over the study period (paper appendix "Mentor Pool over Time"). From the M1 roster: how many
+       mentors were ever on the list, how many were on it at the cutoff, and, at the end of each month, how many were
+       in the automatic assignment pool and how many took manual claims only. From the main analysis sample: how
+       many newcomers asked in each month, how many asked per mentor in the automatic pool, the share who got a
+       reply, and how the newcomers are spread over their assigned mentors.
 
 2. Why it is designed this way
     The reviewers asked what kind of editors the newcomers become and how the conversation itself relates to
     continued editing. Both questions involve events after the reply, which the causal design cannot cover, so the
     answers are descriptive. Activity levels use Wikimedia's own thresholds rather than thresholds chosen here.
+    Part e replaces the two published pool sizes the paper quoted (Phabricator T323048) with counts rebuilt from the
+    roster history, so they can be reproduced. The month-end counts are those of M1 (results/m1/monthly_pool.csv).
+    "Askers per pool mentor" counts only newcomers who asked and are in the main sample, not every account the
+    mentors were assigned; the data do not include all new accounts.
     Only people with a full year of follow-up enter part a, so nobody is counted as inactive just because the
     data end.
 
 3. Inputs
     data/interim/m5/sample.parquet; data/interim/m3/mentee_edits/; data/interim/m2/questions.parquet and turns.jsonl;
-    data/analytic/psm_dataset_legacy_layout.npz (for the propensity-score strata).
+    data/analytic/psm_dataset_legacy_layout.npz (for the propensity-score strata);
+    data/interim/m1/mentor_periods.parquet and mentor_list.parquet (part e).
 
 4. Outputs (results/m8/)
     descriptive_trajectories.csv, descriptive_editor_type.csv, descriptive_conversation.csv,
-    descriptive_followup_association.csv, descriptive_reply_rates.csv
+    descriptive_followup_association.csv, descriptive_reply_rates.csv, descriptive_edit_count_distribution.csv,
+    descriptive_mentor_pool_by_month.csv (one row per month), descriptive_mentor_pool_summary.csv (one row)
 
 5. Key parameters
     FOLLOW_DAYS = 365; ACTIVE = 5 and VERY_ACTIVE = 100 edits per 30-day period; ESTABLISHED = 500 edits.
@@ -63,8 +78,9 @@ import pyarrow.dataset as ds
 import config
 from pipeline.common.manifest import check_upstream, write_manifest
 from pipeline.common.runlog import base_parser, setup_logging
+from pipeline.m1_roster.build_roster import monthly_pool
 from pipeline.m8_analysis import estimators as est
-from pipeline.m8_analysis.run_analysis import covariates, load, subset
+from pipeline.m8_analysis.run_analysis import analysis_sample, covariates, load, subset
 
 FOLLOW_DAYS = 365
 ACTIVE, VERY_ACTIVE, ESTABLISHED = 5, 100, 500
@@ -217,11 +233,49 @@ def reply_rates(s_all: pd.DataFrame, log) -> pd.DataFrame:
     return out
 
 
+def edit_count_distribution(D: dict, log) -> pd.DataFrame:
+    """Part d: how skewed the 14-day article edit count is (main analysis sample)."""
+    c = np.asarray(D["oc_n_mainspace_edits_14d"], float)
+    top = np.sort(c)[::-1][: int(np.ceil(0.01 * len(c)))]
+    out = pd.DataFrame([{"N": len(c), "share_zero": float((c == 0).mean()), "p50": np.percentile(c, 50),
+                         "p90": np.percentile(c, 90), "p99": np.percentile(c, 99), "max": c.max(), "mean": c.mean(),
+                         "share_of_edits_by_top_1pct": float(top.sum() / c.sum())}])
+    log.info("[edits] N=%d zero=%.3f p90=%.0f p99=%.0f max=%.0f top 1%% make %.2f of edits", len(c), out.share_zero[0],
+             out.p90[0], out.p99[0], out["max"][0], out.share_of_edits_by_top_1pct[0])
+    return out
+
+
+def mentor_pool(D: dict, log) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Part e: the mentor pool by month (M1 roster) and the askers of the main analysis sample per pool mentor."""
+    m1 = config.INTERIM / "m1"
+    pool = monthly_pool(pd.read_parquet(m1 / "mentor_periods.parquet"))
+    s = pd.DataFrame({"month": pd.to_datetime(pd.Series(D["q_ts"]), utc=True).dt.strftime("%Y-%m"),
+                      "mentor": np.asarray(D["mentor_ids"]).astype(str), "treat": np.asarray(D["y_treat"])})
+    m = s.groupby("month").agg(askers=("treat", "size"), mentors_assigned=("mentor", "nunique"),
+                               reply_share=("treat", "mean")).reset_index()
+    by_month = pool.merge(m, on="month", how="left")
+    by_month["askers_per_pool_mentor"] = by_month.askers / by_month.auto_pool
+    ml = pd.read_parquet(m1 / "mentor_list.parquet")
+    per = s.groupby("mentor").size().sort_values(ascending=False)
+    top = int(np.ceil(per.size / 10))
+    summary = pd.DataFrame([{
+        "mentors_ever": int(ml.mentor_uid.nunique()), "ever_auto_pool": int(ml.ever_in_auto_pool.sum()),
+        "at_cutoff": int(ml.is_current.sum()), "at_cutoff_auto_pool": int((ml.currently_in_auto_pool == True).sum()),  # noqa: E712
+        "at_cutoff_manual_only": int((ml.currently_in_auto_pool == False).sum()),  # noqa: E712
+        "left_at_least_once": int((ml.leave_count > 0).sum()), "rejoined": int((ml.join_count > 1).sum()),
+        "sample_newcomers": len(s), "sample_mentors": int(per.size), "newcomers_per_mentor_median": float(per.median()),
+        "top10pct_mentors": top, "share_of_newcomers_top10pct_mentors": float(per.head(top).sum() / len(s))}])
+    r = summary.iloc[0]
+    log.info("[pool] %d mentors ever (%d in the automatic pool), %d at the cutoff; sample: %d newcomers, %d mentors",
+             r.mentors_ever, r.ever_auto_pool, r.at_cutoff, r.sample_newcomers, r.sample_mentors)
+    return by_month, summary
+
+
 def main(argv: list[str] | None = None) -> None:
     base_parser("M8 descriptive analyses for the camera-ready.").parse_args(argv)
     log = setup_logging("m8_descriptive")
     t0 = time.time()
-    check_upstream("m8_descriptive", ["m7"])
+    check_upstream("m8_descriptive", ["m1", "m7"])
     OUT.mkdir(parents=True, exist_ok=True)
     s_all = pd.read_parquet(config.INTERIM / "m5" / "sample.parquet")
     s = s_all[s_all.in_sample].copy()
@@ -229,9 +283,11 @@ def main(argv: list[str] | None = None) -> None:
     Dall = load()
     D = subset(Dall, Dall["in_sample"])
     traj, types = trajectories(s, D, log)
-    summary, assoc = conversation(s, D, log)
+    summary, assoc = conversation(s, analysis_sample(Dall), log)   # the association uses 14-day outcomes (I-10)
     res = {"descriptive_trajectories": traj, "descriptive_editor_type": types, "descriptive_conversation": summary,
-           "descriptive_followup_association": assoc, "descriptive_reply_rates": reply_rates(s_all, log)}
+           "descriptive_followup_association": assoc, "descriptive_reply_rates": reply_rates(s_all, log),
+           "descriptive_edit_count_distribution": edit_count_distribution(analysis_sample(Dall), log)}
+    res["descriptive_mentor_pool_by_month"], res["descriptive_mentor_pool_summary"] = mentor_pool(analysis_sample(Dall), log)
     for k, v in res.items():
         v.to_csv(OUT / f"{k}.csv", index=False)
     write_manifest("m8_descriptive", inputs=[config.INTERIM / "m5" / "sample.parquet"],

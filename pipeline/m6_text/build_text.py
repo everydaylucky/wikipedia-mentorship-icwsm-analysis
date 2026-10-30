@@ -134,6 +134,19 @@ def first_reply(turns: list[dict], q_ts) -> tuple[str, dict, list[str]]:
     return "\n\n".join(parts), links, names
 
 
+def text_table(s: pd.DataFrame, turns: dict) -> pd.DataFrame:
+    """One row per first question: the plain question text, the text sent to Perspective and the embedding model, and the first reply."""
+    rows = []
+    for r in s.itertuples():
+        ts = turns.get(r.first_question_revid, [])
+        names = [t["author"] for t in ts if t.get("author")] + [r.mentee_name]
+        rtext, rlinks, _ = first_reply(ts, r.q_ts) if r.treat else ("", {}, names)
+        rows.append({"revid": int(r.first_question_revid), "q_plain": r.question_text or "",
+                     "q_emb": make_emb_text(r.question_wikitext or "", names), "r_plain": rtext,
+                     "r_emb": emb_text_from_plain(rtext, names), "r_links": rlinks})
+    return pd.DataFrame(rows).set_index("revid")
+
+
 def legacy() -> dict:
     """Paper-version texts and results, keyed by revid."""
     s7 = {int(r["revid"]): r for r in iter_jsonl(config.EXTERNAL["paper_s7"]) if r.get("revid")}
@@ -151,7 +164,7 @@ def legacy() -> dict:
 
 
 def fill(cache: TextCache, items: list[tuple[int, str, str]], legacy_vals: dict, task: str, model: str, version: str,
-         call, online: bool, log) -> dict[str, object]:
+         call, online: bool, log, chunk: int = 200) -> dict[str, object]:
     """items: (revid, new text, paper-version text). First import paper-version results that can be reused, then fill gaps online. Returns {new text: result}."""
     reuse = {}
     for rv, new, old in items:
@@ -165,9 +178,16 @@ def fill(cache: TextCache, items: list[tuple[int, str, str]], legacy_vals: dict,
     log.info("%s: %d texts, legacy reuse %d, already cached %d, missing %d", task, len(items), len(reuse), len(have),
              len(missing))
     if online and missing:
-        got = call(missing, log)
-        cache.put_many(got, task, model, version, source="api")
-        log.info("%s: called service for %d, got %d", task, len(missing), len(got))
+        n_got = 0
+        for i in range(0, len(missing), chunk):          # save after each chunk, so a stop loses at most one chunk
+            part = cache.missing(missing[i:i + chunk], task, model, version)   # skip texts filled meanwhile (e.g. imported from a second machine)
+            if not part:
+                continue
+            got = call(part, log)
+            cache.put_many(got, task, model, version, source="api")
+            n_got += len(got)
+            log.info("%s: %d/%d done", task, min(i + chunk, len(missing)), len(missing))
+        log.info("%s: called service for %d, got %d", task, len(missing), n_got)
     return cache.get_many([t for _, t, _ in items], task, model, version)
 
 
@@ -258,15 +278,7 @@ def main(argv: list[str] | None = None) -> None:
     cache = TextCache()
 
     # 1. Texts
-    rows = []
-    for r in s.itertuples():
-        ts = turns.get(r.first_question_revid, [])
-        names = [t["author"] for t in ts if t.get("author")] + [r.mentee_name]
-        rtext, rlinks, _ = first_reply(ts, r.q_ts) if r.treat else ("", {}, names)
-        rows.append({"revid": int(r.first_question_revid), "q_plain": r.question_text or "",
-                     "q_emb": make_emb_text(r.question_wikitext or "", names), "r_plain": rtext,
-                     "r_emb": emb_text_from_plain(rtext, names), "r_links": rlinks})
-    T = pd.DataFrame(rows).set_index("revid")
+    T = text_table(s, turns)
 
     # 2. LLM, Perspective, embeddings (reuse, then fill gaps)
     s7 = L["s7"]

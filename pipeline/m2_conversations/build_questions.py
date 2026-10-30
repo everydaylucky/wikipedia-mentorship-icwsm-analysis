@@ -124,7 +124,7 @@ def lower_name(n: str | None) -> str | None:
 
 
 # ── 1. The set of questions ─────────────────────────────────────────────────────────────
-def load_base(log, issues: IssueLog) -> pd.DataFrame:
+def load_base(log, issues: IssueLog, use_diff: bool = True) -> pd.DataFrame:
     """Read eval2's questions and the top-up sweep, and merge them into one row per tagged revision (R4.1). Keep only those before the cutoff.
 
     Returned columns: question_revid, parentid, q_ts, page_eval, eval_mentor_uid, mentee_uid, mentee_name,
@@ -153,6 +153,15 @@ def load_base(log, issues: IssueLog) -> pd.DataFrame:
                      "tags": r.get("tags") or [], "tag": r.get("tag"), "source": "topup",
                      "eval_turns": [], "eval_has_any_reply": None, "texthidden": "texthidden" in r})
     df = pd.DataFrame(rows)
+    # Question text as posted (I-60): for the questions whose collected text is obviously broken (see
+    # question_diffs.suspects), the lines added by the tagged revision itself replace the collected text.
+    diff_path = RAW / "question_text_from_diff.json"
+    from_diff = json.loads(diff_path.read_text()) if diff_path.exists() and use_diff else {}
+    dtext = df.question_revid.map(lambda rv: (from_diff.get(str(rv)) or {}).get("text") or "")
+    use = dtext.str.strip() != ""
+    df["question_wikitext_origin"] = use.map({True: "diff", False: "collected"})
+    df.loc[use, "question_wikitext"] = dtext[use]
+    log.info("question wikitext from the tagged revision's diff: %d of %d", int(use.sum()), len(df))
     if "texthidden" not in df:
         df["texthidden"] = False
     df["texthidden"] = df["texthidden"].fillna(False).astype(bool)
@@ -593,7 +602,7 @@ def build(log, issues: IssueLog) -> tuple[pd.DataFrame, list[dict]]:
             "away_routed": q["away_routed"], "editing_page": editing, "article_context": article,
             "question_wikitext": text, "question_text": to_plain_text(text) or (q_dt_text or ""),
             "question_text_source": "wikitext" if to_plain_text(text) else ("discussiontools" if q_dt_text else "none"),
-            "question_text_dt": q_dt_text,
+            "question_text_dt": q_dt_text, "question_wikitext_origin": q["question_wikitext_origin"],
             "thread_page": th.page if th else None, "thread_revid": th.as_of_revid if th else None,
             "thread_origin": th.origin if th else None, "match_score": info["score"],
             "n_turns": len(turns), **fields,

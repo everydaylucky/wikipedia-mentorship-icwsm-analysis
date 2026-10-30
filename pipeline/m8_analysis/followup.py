@@ -4,7 +4,7 @@ followup.py: later-period outcomes and a question-time anchor (camera-ready anal
 Module: M8 (analyses added for the ICWSM 2027 camera-ready, answering the meta-review and reviewers 1 to 3)
 
 1. What it does
-    Three causal analyses with exactly the main design (propensity score with 5-fold cross-fitting, 10 strata,
+    Four causal analyses with exactly the main design (propensity score with 5-fold cross-fitting, 10 strata,
     stratified ATT, 500 bootstrap draws clustered by newcomer; run_analysis.psm_att):
     a. Later, non-overlapping periods. Outcome = at least one (or at least five) mainspace edits in days 15 to 28,
        29 to 60 and 61 to 180 after the anchor. Each period uses only people whose follow-up reaches the end of the
@@ -14,6 +14,21 @@ Module: M8 (analyses added for the ICWSM 2027 camera-ready, answering the meta-r
        least 3.
     c. Question-time anchor. Both groups start the clock at the question, so no pseudo reply time is needed.
        Outcome = at least one mainspace edit in the 14 days after the question.
+    d. Long-term effect on one fixed cohort: people whose anchor + 365 days is before the data cutoff, so every
+       period is observed for the same people. One propensity model and one set of strata for the cohort.
+       Rules fixed before this analysis was run:
+         - outcome: at least one (secondary: at least five) mainspace edits in each period;
+         - periods: days 15 to 28, 29 to 60, 61 to 180 (the later periods of analysis a) and 181 to 365;
+         - inference: Benjamini-Hochberg q values over the eight later estimates (four periods x two thresholds),
+           as for the other families of tests in the paper; COHORT_BOOT bootstrap draws, so that the bootstrap
+           p values are precise enough for the correction (with 500 draws they move in steps of 0.004);
+         - days 1 to 14 are reported to compare the cohort with the full sample, outside the correction.
+       Monthly description for the appendix figure: month k = days (30(k-1), 30k], k = 1 to 12; treated share and
+       control share reweighted to the treated newcomers' strata. The ATT per month is saved with pointwise 95%
+       intervals and a simultaneous 95% band over the 12 months (sup-t band from the same bootstrap draws,
+       Montiel Olea and Plagborg-Moller 2019), but is not used for any claim.
+       Every outcome uses the same bootstrap draws (the generator is reset to config.SEED for each), so the draws
+       are joint across months and periods.
 
 2. Why it is designed this way
     Reviewer 2 noted that cumulative windows (any edit within 7 to 180 days) are nested, so they are significant
@@ -26,7 +41,8 @@ Module: M8 (analyses added for the ICWSM 2027 camera-ready, answering the meta-r
     data/analytic/psm_dataset_legacy_layout.npz (M7); data/interim/m3/mentee_edits/ (M3) for the question-time anchor.
 
 4. Outputs (results/m8/, or results/m8_b<B>/ with --boot)
-    followup_later_periods.csv, followup_active_periods.csv, followup_question_anchor.csv
+    followup_later_periods.csv, followup_active_periods.csv, followup_question_anchor.csv,
+    followup_monthly.csv, followup_cohort_periods.csv
 
 5. Key parameters
     The periods below (PERIODS); config.N_BOOT; config.SEED.
@@ -138,8 +154,108 @@ def question_anchor(D: dict, log) -> pd.DataFrame:
     return pd.DataFrame([r])
 
 
+MONTHS = 12
+
+
+def monthly_matrix(D: dict) -> tuple[np.ndarray, np.ndarray]:
+    """n x MONTHS matrix (1 = a mainspace edit in month k after the anchor) and the anchors (M5)."""
+    s = pd.read_parquet(config.INTERIM / "m5" / "sample.parquet", columns=["first_question_revid", "mentee_uid", "anchor"])
+    s = s.drop_duplicates("first_question_revid").set_index("first_question_revid").loc[D["cid_order"].astype(np.int64)]
+    a = pd.to_datetime(s.anchor, utc=True).dt.tz_localize(None).to_numpy(dtype="datetime64[s]")
+    uids = s.mentee_uid.astype(np.int64).to_numpy()
+    e = ds.dataset(config.INTERIM / "m3" / "mentee_edits").to_table(
+        columns=["uid", "timestamp", "ns"], filter=(ds.field("uid").isin(list(uids))) & (ds.field("ns") == 0)).to_pandas()
+    ts = pd.to_datetime(e.timestamp, utc=True).dt.tz_localize(None).to_numpy(dtype="datetime64[s]")
+    pos = {u: i for i, u in enumerate(uids)}
+    i = e.uid.map(pos).to_numpy()
+    days = (ts - a[i]) / np.timedelta64(1, "D")
+    m = np.ceil(days / 30).astype(int)
+    ok = (days > 0) & (m >= 1) & (m <= MONTHS)
+    Y = np.zeros((len(uids), MONTHS))
+    Y[i[ok], m[ok] - 1] = 1
+    return Y, a
+
+
+COHORT_DAYS = 365
+COHORT_BOOT = 2000
+#: (label, first day, last day) of the periods for analysis d; days 1 to 14 sit outside the correction
+COHORT_PERIODS = [("days 1-14", 0, 14), ("days 15-28", 14, 28), ("days 29-60", 28, 60), ("days 61-180", 60, 180),
+                  ("days 181-365", 180, 365)]
+
+
+def period_edits(D: dict, a: np.ndarray, lo: int, hi: int) -> np.ndarray:
+    """Number of mainspace edits in days (lo, hi] after the anchor, per newcomer."""
+    s = pd.read_parquet(config.INTERIM / "m5" / "sample.parquet", columns=["first_question_revid", "mentee_uid"])
+    uids = s.drop_duplicates("first_question_revid").set_index("first_question_revid").loc[
+        D["cid_order"].astype(np.int64)].mentee_uid.astype(np.int64).to_numpy()
+    e = ds.dataset(config.INTERIM / "m3" / "mentee_edits").to_table(
+        columns=["uid", "timestamp", "ns"], filter=(ds.field("uid").isin(list(uids))) & (ds.field("ns") == 0)).to_pandas()
+    ts = pd.to_datetime(e.timestamp, utc=True).dt.tz_localize(None).to_numpy(dtype="datetime64[s]")
+    i = e.uid.map({u: k for k, u in enumerate(uids)}).to_numpy()
+    days = (ts - a[i]) / np.timedelta64(1, "D")
+    ok = (days > lo) & (days <= hi)
+    return np.bincount(i[ok], minlength=len(uids)).astype(float)
+
+
+def monthly_activity(D: dict, log) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Analysis d: the fixed one-year cohort, by month (figure) and by the four fixed periods (tests)."""
+    Y, a = monthly_matrix(D)
+    cutoff = np.datetime64(pd.Timestamp(config.DATA_CUTOFF).tz_localize(None), "s")
+    full = a + np.timedelta64(COHORT_DAYS, "D") <= cutoff
+    S, Y, a = subset(D, full), Y[full], a[full]
+    X, d = covariates(S), S["y_treat"].astype(float)
+    st = est.make_strata(est.fit_propensity(X[:, X.std(axis=0) > 0], d).e_hat, config.N_STRATA)
+    cl = est.ClusterIndex(S["mentee_ids"])
+    n1 = np.array([((st == k) & (d == 1)).sum() for k in range(st.max() + 1)])
+
+    def ctrl_w(y):
+        return sum(n1[j] * y[(st == j) & (d == 0)].mean() for j in range(len(n1))) / n1.sum()
+
+    def fit(y):
+        B = COHORT_BOOT if config.N_BOOT == config.N_BOOT_FINAL else config.N_BOOT
+        draws = est.bootstrap_att(y, d, st, cl, np.random.RandomState(config.SEED), B)
+        lo, hi = est.percentile_ci(draws)
+        p = min(1.0, 2 * min(float((draws <= 0).mean()), float((draws >= 0).mean())))
+        return est.att_stratified(y, d, st).att, draws, lo, hi, p
+
+    rows, draws = [], []
+    for k in range(MONTHS):
+        y = Y[:, k]
+        att, dr, lo, hi, p = fit(y)
+        draws.append(dr)
+        rows.append({"month": k + 1, "N": int(len(y)), "Treated": int(d.sum()), "Treat_share": y[d == 1].mean(),
+                     "Ctrl_share_reweighted": ctrl_w(y), "Ctrl_share_raw": y[d == 0].mean(), "ATT": att,
+                     "CI_lo": lo, "CI_hi": hi, "Sig": "*" if est.is_significant(lo, hi) else ""})
+    m = pd.DataFrame(rows)
+    Dr = np.vstack(draws)
+    se = Dr.std(axis=1, ddof=1)
+    crit = float(np.percentile(np.max(np.abs(Dr - m.ATT.to_numpy()[:, None]) / se[:, None], axis=0), 95))
+    m["band_lo"], m["band_hi"] = m.ATT - crit * se, m.ATT + crit * se
+    m["band_crit"] = crit
+    m["band_excludes_0"] = np.where(m.band_lo > 0, "*", "")
+    log.info("[cohort] N=%d (treated %d); sup-t critical value %.2f (pointwise 1.96)", len(d), int(d.sum()), crit)
+
+    prow = []
+    for label, lo_d, hi_d in COHORT_PERIODS:
+        n = period_edits(S, a, lo_d, hi_d)
+        for thr in (1, 5):
+            y = (n >= thr).astype(float)
+            att, _, lo, hi, p = fit(y)
+            prow.append({"period": label, "threshold": f"{thr}+", "N": int(len(y)), "Treat_mean": y[d == 1].mean(),
+                         "Ctrl_mean_reweighted": ctrl_w(y), "ATT": att, "CI_lo": lo, "CI_hi": hi, "p_boot": p,
+                         "Sig": "*" if est.is_significant(lo, hi) else ""})
+    P = pd.DataFrame(prow)
+    later = P.period != "days 1-14"
+    P["q_BH"] = np.nan
+    P.loc[later, "q_BH"] = reg.bh_qvalues(P.loc[later, "p_boot"].to_numpy())
+    for r in P.itertuples():
+        log.info("[cohort] %-13s %s ATT=%+.4f [%+.4f, %+.4f] p=%.4f q=%s", r.period, r.threshold, r.ATT, r.CI_lo,
+                 r.CI_hi, r.p_boot, "" if np.isnan(r.q_BH) else f"{r.q_BH:.3f}")
+    return m, P
+
+
 def main(argv: list[str] | None = None) -> None:
-    ap = base_parser("M8 follow-up analyses for the camera-ready (later periods, active periods, question anchor).")
+    ap = base_parser("M8 follow-up analyses for the camera-ready (later periods, active periods, question anchor, monthly activity).")
     ap.add_argument("--boot", type=int, default=config.N_BOOT, help="bootstrap draws (final 500; 100 for a quick check)")
     args = ap.parse_args(argv)
     config.N_BOOT = args.boot
@@ -153,6 +269,7 @@ def main(argv: list[str] | None = None) -> None:
     D = subset(Dall, Dall["in_sample"])
     res = {"followup_later_periods": later_periods(D, log), "followup_active_periods": active_periods(D, log),
            "followup_question_anchor": question_anchor(D, log)}
+    res["followup_monthly"], res["followup_cohort_periods"] = monthly_activity(D, log)
     for k, v in res.items():
         v.to_csv(out_dir / f"{k}.csv", index=False)
     write_manifest("m8_followup" if not debug else f"m8_followup_b{config.N_BOOT}",

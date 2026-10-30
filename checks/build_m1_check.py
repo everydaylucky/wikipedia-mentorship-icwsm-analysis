@@ -26,6 +26,69 @@ CELLS = [
 md("""
 # M1 mentor roster: check notebook
 
+## Plain-language guide
+
+**Why the study needs this module.** The study asks whether a newcomer who gets a reply from their
+assigned mentor keeps editing Wikipedia longer. To answer that, we must first know **who was a mentor,
+and when**. M1 builds that list. Later steps use it in three ways: M2 uses it to decide whether a reply
+on a mentor's talk page was written by the mentor; M4 uses it to check that the newcomer's mentor was in
+the "automatic pool" (the group that the software assigns new accounts to at random) on the day the
+newcomer signed up; and the paper reports the number of mentors.
+
+**Raw data and where it comes from.** All raw data comes from English Wikipedia through the public
+MediaWiki API (the web interface that returns page history). M1 uses the full edit history (every saved
+version, called a "revision") of the pages where mentors sign up:
+
+* `Wikipedia:Growth Team features/Mentor list` (the automatic list, 2021-05-04 to 2022-10-26);
+* `Wikipedia:Growth Team features/Mentor list/Manual` (the manual list, counted from 2021-09-20);
+* the structured roster page in JSON format, `MediaWiki:GrowthMentors.json` (from 2022-10-26 on);
+* the history of the wiki setting that says which page is the manual list, plus a small table that
+  turns user names into user ids (a user id, or "uid", is a number that never changes, even when the
+  user renames their account).
+
+Only revisions saved strictly before the cutoff, **2026-04-20T14:00:00Z**, are used.
+
+**What the processing does.**
+
+1. Read every roster revision before the cutoff, in time order.
+2. For each revision, work out for every mentor one of three states: in the automatic pool, on the
+   roster but manual only (newcomers can pick them, but the software does not assign them), or not on
+   the roster.
+3. Turn user names into user ids, so a mentor who renamed their account is still one person.
+4. Each time a mentor's state changes, record an event (joined, left, or moved in or out of the pool).
+5. Join consecutive revisions with the same state into time periods, and count the mentors on the
+   roster at the end of every month.
+
+**What it produces** (numbers from this run on the final data, cutoff 2026-04-20T14:00Z):
+
+* `mentor_list.parquet`: **450 rows**, one per mentor. Key columns: the user id, the latest user name,
+  when they first joined and last left, whether they are still on the roster at the cutoff (291 are)
+  and whether they are in the automatic pool then (210 are).
+* `mentor_periods.parquet`: **825 rows**. One row is a stretch of time during which one mentor's state
+  stayed the same: start time, end time (empty if it still holds at the cutoff), and whether that
+  state was "automatic pool" or "manual only".
+* `mentor_events.parquet`: **1,031 rows**, one per change: the time, the revision number (so anyone can
+  open it on Wikipedia), who made the edit, and the kind of change (497 joined, 206 left,
+  328 pool changes).
+* `mentor_names.parquet`: **489 rows**, one per (mentor, name) pair, so a mentor who used several
+  names has several rows. M2 uses it to recognize a mentor's signature.
+* `monthly_pool.csv`: **59 rows**, one per month from 2021-05 to 2026-03, with the number of mentors
+  listed, in the automatic pool, and manual only.
+
+### How to read this notebook
+
+* All outputs below are already saved from a full run. **You do not need to run anything.**
+* Each check prints `[OK ]` (the rule holds) or `[FAIL]` (it does not, which would need explanation).
+* An **invariant** is a rule that must always be true of the data, such as "a period never ends
+  before it starts".
+* A **replay** (section 3.2) is a second, independent rebuild of the roster from the raw revisions,
+  written here in simple code. If the replay and M1 agree for every mentor, the M1 code is very
+  unlikely to have a bug.
+* A **tracer** is a mentor chosen in advance and followed through every module, so the same people
+  can be compared across notebooks. A **random sample** is drawn with a fixed seed (a number that
+  makes the draw repeatable), so nobody chose the examples by hand.
+* Links in the outputs open the exact Wikipedia revision, so any claim can be checked by eye.
+
 ## 1. What this module does
 
 **Code**: `pipeline/m1_roster/` (`collect_roster.py` downloads the raw data, `build_roster.py` rebuilds the roster offline).
@@ -50,11 +113,15 @@ registered (M4 sample eligibility, D10); who counts as a mentor when M2 labels a
 
 ## How to use this notebook
 
-* Run all cells from the top (about 1 minute). Every check prints `[OK ]` or `[FAIL]`.
+* The saved outputs come from a full run. To rerun, run all cells from the top (about 1 minute).
+  Every check prints `[OK ]` or `[FAIL]`.
 * Section 3 replays the raw revisions with **separate, simple code written in this notebook** and compares
   the result with M1 for all mentors. Section 5 shows random mentors in detail, with links to the
   exact revisions where their status changed, so you can open them on Wikipedia.
 * Change `SEED` in the next cell to draw a new random sample.
+
+**What this checks.** The next cell only loads the five M1 output tables and prints how many rows
+each has. It is a quick sanity check that the files exist and are not empty.
 """),
 code(r'''
 # ── setup ────────────────────────────────────────────────────────────────────
@@ -82,7 +149,16 @@ names = pd.read_parquet(M1 / "mentor_names.parquet")
 mp = pd.read_csv(config.RESULTS / "m1" / "monthly_pool.csv").set_index("month")
 print(f"mentors {len(ml)} | periods {len(periods)} | events {len(events)} | names {len(names)} | months {len(mp)}")
 '''),
-md("## 2. Files and manifest"),
+md("""
+**What the output shows.** On the final data (cutoff 2026-04-20T14:00Z) there are 450 mentors,
+825 periods, 1,031 events, 489 names and 59 months. These are the sizes used throughout this notebook.
+
+## 2. Files and manifest
+
+**What this checks.** M1 writes a "manifest", a small receipt that lists which input files it read
+(with size and date), which files it wrote, the cutoff it used, and its main counts. This shows the
+outputs were made from the expected inputs with the right cutoff.
+"""),
 code(r'''
 man = json.loads((M1 / "manifest.json").read_text())
 print("finished:", man["finished_at"], "| cutoff:", man["data_cutoff"], "| elapsed:", man["elapsed_sec"], "s")
@@ -91,6 +167,12 @@ display(pd.DataFrame(man["outputs"])[["path", "bytes"]])
 print(json.dumps(man["counts"], ensure_ascii=False, indent=1))
 '''),
 md("""
+**What the output shows.** The cutoff is 2026-04-20T14:00:00Z as intended, all seven inputs exist, and
+M1 took under 4 seconds (it works offline from saved files). Of the 450 mentors, 291 are on the roster
+at the cutoff and 210 of those are in the automatic pool; 162 were "manual only" at some time; 6 appear
+only on the old manual list. Every name was turned into a user id (`uid_unresolved: 0`). The two issue
+counts (108 short-lived states, 11 differences from the older version) are explained in sections 4 and 6.
+
 ### Data dictionary
 
 Every output column, what it means, and where this notebook checks it.
@@ -144,9 +226,18 @@ for t, rows in DD.items():
     display(pd.DataFrame(rows, columns=["column", "meaning", "checked in"]))
 '''),
 md("""
+**What the output shows.** These tables are a reference, not a test: they list every output column in
+plain words and say which later section checks it, so no column is left unchecked.
+
 ## 3. Invariants
 
 ### 3.1 Structure of the output tables
+
+**What this checks.** Basic rules that must hold in any correct roster: every mentor has a unique
+user id, nothing happens at or after the cutoff, periods do not overlap and never end before they
+start, a mentor still on the roster has exactly one open period, and the counts in `mentor_list`
+match the events. If any of these failed, later modules could count a mentor twice or use the wrong
+pool status.
 """),
 code(r'''
 ck = Checks()
@@ -179,6 +270,9 @@ ck.add("(mentor_uid, name) is unique in mentor_names", not names.duplicated(["me
 ck.add("periods: in_auto_pool is never empty", periods.in_auto_pool.notna().all())
 '''),
 md("""
+**What the output shows.** All 18 structural checks print `[OK ]` on the final data
+(cutoff 2026-04-20T14:00Z). (The `True` at the end is just the return value of the report.)
+
 ### 3.2 Independent replay of the raw roster revisions
 
 The code below does **not** call any M1 function. It reads the three raw revision files and, for each
@@ -190,6 +284,9 @@ Its parsing rules are written out in plain Python:
 * the manual page counts only while `config_revisions.jsonl` says the wiki setting points to it;
 * JSON: use `automaticallyAssigned` if present, else `weight != 0`;
 * names in the wikitext period become uids through the JSON roster itself (which has both), then the old uid map.
+
+**What this checks.** The next cell reads the raw revisions and builds the replay. It prints how many
+raw revisions there are and how many mentors the replay finds, which should be 450, like M1.
 """),
 code(r'''
 SWITCH = "2022-10-26T13:19:10Z"     # first revision of the JSON roster (DATA_PROCESSING section 1)
@@ -284,6 +381,16 @@ for ts, rid, src, st in snaps:
 final = prev
 print("mentors found by the replay:", len(timeline))
 '''),
+md("""
+**What the output shows.** Before the cutoff there are 281 revisions of the automatic list, 24 of the
+manual list and 2,017 of the JSON roster; none of the JSON revisions is broken. The wiki setting history
+shows the manual list was switched on only on 2021-09-20 (the two earlier entries are empty), so manual
+names before that date are ignored, as the rule says. The replay steps through 2,277 roster versions
+(the snapshots) and finds 450 mentors, the same number as M1.
+
+**What this checks (next cell).** It looks for mentors whose JSON entry never had a user name, then
+summarizes each mentor from the replay so the next section can compare it field by field with M1.
+"""),
 code(r'''
 uid_names = json.loads((RAW1 / "uid_names.json").read_text())     # uid -> name, looked up with the API by collect_roster.py
 print("mentors whose JSON entries never had a username:", uid_names)
@@ -331,7 +438,18 @@ for u, s in mine.items():
 for u in set(mli.index) - set(mine): mism.append((u, "in mentor_list but not found by the replay", None, None))
 mism = pd.DataFrame(mism, columns=["mentor_uid", "field", "replay", "in data"])
 '''),
-md("### 3.3 Replay versus M1 output, for every mentor and every month"),
+md("""
+**What the output shows.** Only one mentor (an alternate account) had a JSON entry with no user name;
+its name was looked up by user id through the API. Everything else has a name on the roster itself.
+
+### 3.3 Replay versus M1 output, for every mentor and every month
+
+**What this checks.** The independent replay is compared with M1 for all 450 mentors and every field:
+names, join and leave times, current status, pool status, counts and every single period. It also
+checks that each event points to a real raw revision with the same time, editor and edit summary, and
+that the monthly counts agree. This is the main test of the module: two separate pieces of code must
+reach exactly the same roster.
+"""),
 code(r'''
 ck.add("replay finds the same set of mentors as mentor_list", set(mine) == set(mli.index))
 for f in LIST_FIELDS + ["periods"]:
@@ -376,10 +494,19 @@ for x in mon_bad[:5]: print("  MISMATCH", x)
 ck.report()
 '''),
 md("""
+**What the output shows.** All 17 checks print `[OK ]`, with 0 mismatches in every field, 0 bad events
+and 0 bad months, so together with section 3.1 all 35 of 35 checks pass on the final data (cutoff
+2026-04-20T14:00Z). The replay and M1 agree exactly on every mentor.
+
 ## 4. Comparison with the previous version (eval2 frozen roster)
 
+"eval2" is an earlier, frozen version of the same roster made by an older pipeline. Comparing with it
+shows what changed and why.
 Expected: every difference comes from the **manual list** of the wikitext period (eval2 did not parse it),
 or from eval2 using "not later than the cutoff" where M1 uses "strictly before".
+
+**What this checks.** It counts mentors whose join or leave dates differ between M1 and eval2, lists
+them, and tests whether each difference is explained by the manual list.
 """),
 code(r'''
 cmp = pd.read_csv(config.RESULTS / "m1" / "compare_with_eval2.csv")
@@ -398,9 +525,20 @@ print("not explained by the manual list (look at these by hand):")
 display(dfe[~expl])
 '''),
 md("""
+**What the output shows.** 439 of 450 mentors are identical to eval2. The other 11 differ only in dates,
+and all 11 involve the manual list that eval2 did not read; the "not explained" table is empty. In
+most cases M1 finds an **earlier** join date (eval2 only saw these mentors once the JSON roster
+started on 2022-10-26). This is an expected improvement, not an error. A reviewer may notice that
+several of these are staff or test accounts (names ending in "(WMF)" or "Test"); they were on the
+real roster, so M1 keeps them.
+
 ## 5. Tracer samples and random samples: raw revisions next to processed values
 
 ### 5.T Fixed tracer samples
+
+**What this checks.** For a few mentors chosen in advance, it prints the raw revisions where their
+status changed (with links), their periods, and the replay next to M1, so a reader can follow one
+person from raw page to final table.
 
 The mentors in the locked tracer list (pipeline/common/tracer.py), plus Xaosflux (uid 502540), who left
 the automatic list on 2021-06-07 ("i don't want to be autoassinged") and has been on the manual list since 2021-09-20.
@@ -428,6 +566,14 @@ tr = tracer_frame()
 sample_uids = list(dict.fromkeys([int(u) for u in tr[tr.kind == "mentor"].uid.dropna()] + [502540]))
 tracer_ok = [show_mentor(u) for u in sample_uids]
 '''),
+md("""
+**What the output shows.** All 7 tracer mentors print "all fields match". They cover the main cases:
+a mentor who joined on day one and never left, one who left and came back, mentors from the JSON period,
+one who renamed their account, and one who moved from the automatic list to the manual list.
+
+**What this checks (next cell).** For that last mentor, it reads the raw text of both wikitext pages
+and lists every revision where the name appears or disappears, as a direct check of the manual-list rule.
+"""),
 code(r'''
 # Raw text check for Xaosflux: in which revisions of each wikitext page does the name appear?
 def presence(revs, name):
@@ -442,12 +588,19 @@ for label, revs in (("automatic list page", [r for r in raw_wiki if r["timestamp
     for x in presence(revs, "Xaosflux"): print("  ", x, oldid(x[1]))
 '''),
 md("""
+**What the output shows.** On the automatic page the name is added on 2021-06-07 and removed the same
+day ("i don't want to be autoassinged"), then added and removed twice more within about 30 seconds
+(edit summaries "test" and "undo me"). On the manual page the name is listed from 2021-09-20 on. This
+matches the M1 periods above. The brief test edits show up as very short periods; section 6 explains them.
+
 ### 5.R Random mentors
 
 `N_RANDOM` mentors drawn at random (change `SEED` at the top for others), plus `N_RANDOM` random mentors
 who have left at least once and `N_RANDOM` who were manual-only at some time, because those are the
 harder cases. For each: the raw revisions where the status changes (open the diff links to see the line
 being added or removed), the line that mentions them in the raw page text, and replay vs data.
+
+**What this checks.** That M1 is right not only for hand-picked people but for people nobody chose.
 """),
 code(r'''
 def raw_line(uid, rid):
@@ -475,11 +628,22 @@ for label, pool in (("all mentors", ml), ("mentors who left at least once", ml[m
 print(f"\nrandom mentors where replay == data: {sum(rand_ok)} of {len(rand_ok)}")
 '''),
 md("""
+**What the output shows.** All 15 random mentors (5 from all 450, 5 from the 175 who left at least once,
+5 from the 162 who were manual only at some time) print "all fields match". The raw JSON lines show how
+pool status is read: `"automaticallyAssigned": false` or `"weight": 0` means manual only. Some entries
+have only a weight and no `automaticallyAssigned` field; this is the third roster format, and it is
+handled as planned. One random mentor is a staff test account that was listed for 18 seconds, removed,
+and later added again on the manual list; it is a real roster entry, so it is kept.
+
 ### 5.N Random names: how a name maps to a uid
 
 M2 uses `mentor_names` to decide whether a signature belongs to a mentor. For random names: the raw
 evidence (the JSON roster entry with this uid and username, the old uid map, the API lookup, or the
 alt-account table in config.py).
+
+**What this checks.** For 5 random names plus every name that did not come from the roster, it shows
+the raw evidence that links the name to that user id. A wrong link here would make M2 treat a reply
+from someone else as a mentor reply, or miss a real one.
 """),
 code(r'''
 uid_map_old = {my_name(k): v for k, v in json.loads(config.EXTERNAL["roster_uid_map"].read_text()).items()}
@@ -502,7 +666,15 @@ for _, r in samp.iterrows():
         compare({"first_seen": min(seen), "last_seen": max(seen)}, {"first_seen": r.first_seen, "last_seen": r.last_seen})
 '''),
 md("""
+**What the output shows.** The 5 random names each come from a JSON roster entry with that exact user
+id and name, and their first and last dates match the replay. Only 2 of the 489 names come from
+somewhere other than the roster: one alternate account listed by hand in `config.py`, and one name
+looked up through the API by user id. Both have clear evidence.
+
 ## 6. Edge cases
+
+**What this checks.** Unusual situations that could trip up the code. The first cell prints the issue
+counts M1 wrote and shows random very short states with links to the edit.
 
 * All issue counts written by M1.
 * **Short-lived states** (under 1 hour): usually someone editing the roster twice in a row. Random examples with the diff to open.
@@ -521,6 +693,17 @@ for r in pick(tr_, N_RANDOM, SEED).itertuples():
     print(f"  uid {r.uid} ({mli.loc[r.uid, 'username'] if r.uid in mli.index else '?'})  start {r.start}  lasted {r.hours*3600:.0f} s"
           f"  {ch[0][3] + ' -> ' + ch[0][4] if ch else ''}  {diff(rid) if rid else ''}")
 '''),
+md("""
+**What the output shows.** There are only two kinds of issue, and both are flagged, not removed:
+108 short-lived states and the 11 eval2 differences from section 4. The 108 states lasted under one
+hour (median 0.7 minutes); the examples are a mentor ticking a box and changing it back, or a test edit
+undone seconds later. They are kept because they really happened on the roster. They barely matter
+for the paper, since a newcomer would have to register in that same minute for it to change their
+mentor's pool status.
+
+**What this checks (next cell).** Mentors who joined more than once, mentors who appear under more
+than one name, and JSON entries whose pool status cannot be read.
+"""),
 code(r'''
 multi = ml[ml.join_count > 1]
 print(f"mentors who joined more than once: {len(multi)}")
@@ -536,10 +719,20 @@ print("\nentries with neither automaticallyAssigned nor weight (status unknown):
       sum(1 for s in snaps if s[2] == "json" for v in s[3].values() if v[0] is None))
 '''),
 md("""
+**What the output shows.** 39 mentors joined more than once (left and came back), and 36 were seen on
+the roster under more than one name, which is why M1 uses the user id, not the name, as the key. The
+list shows renames such as one name replaced by another on a later date; `mentor_list` keeps the latest
+name. One mentor's latest name is "Renamed user" followed by a code: this is how Wikipedia hides the
+name of an account that asked to vanish, so it is expected. No JSON entry lacked both pool fields (0),
+so every status is known.
+
 ## 7. Distributions: mentors on the roster at each month end
 
 Public figures to compare with: about 83 mentors in the automatic pool in 2022-11 and about 187 in 2025-02
-(discussion around T384505). The red dots are the public figures.
+(discussion around T384505, a task on the Wikimedia bug tracker). The red dots are the public figures.
+
+**What this checks.** Whether the roster size over time looks right, compared with numbers the
+Wikipedia team stated in public.
 """),
 code(r'''
 display(mp.loc[["2021-05", "2021-09", "2022-10", "2022-11", "2023-11", "2024-06", "2025-02", "2026-03"]])
@@ -548,7 +741,18 @@ ax.scatter([mp.index.get_loc("2022-11"), mp.index.get_loc("2025-02")], [83, 187]
 print("period length in days (closed periods):")
 print((periods.hours.dropna() / 24).describe().round(1).to_string())
 '''),
-md("## 8. Summary (written to results/m1_report.json, read by M9)"),
+md("""
+**What the output shows.** The roster grew from 14 mentors in 2021-05 to 288 in 2026-03. The automatic
+pool had 85 mentors in 2022-11 and 188 in 2025-02, within 2 and 1 of the public figures (83 and 187),
+so the rebuild agrees with outside numbers. The manual-only group grew too, to 80 in 2026-03. Periods
+vary a lot: the median closed period is 80 days, but a quarter last under 2.6 days (the minimum shows as
+0.0 because of the short test edits from section 6).
+
+## 8. Summary (written to results/m1_report.json, read by M9)
+
+**What this checks.** It writes the key numbers to a small report file that the paper step (M9) reads,
+and prints the total of passed checks.
+"""),
 code(r'''
 report = {"n_mentors": len(ml), "n_current": int(ml.is_current.sum()),
           "n_current_auto": int((ml.currently_in_auto_pool == True).sum()),
@@ -560,6 +764,12 @@ print(json.dumps(report, indent=1))
 print(f"\nchecks passed: {sum(ok for _, ok in ck.items)} / {len(ck.items)}; "
       f"random and tracer mentors matching the replay: {sum(rand_ok) + sum(tracer_ok)} / {len(rand_ok) + len(tracer_ok)}")
 '''),
+md("""
+**What the output shows.** On the final data (cutoff 2026-04-20T14:00Z): 450 mentors, 291 still on the
+roster at the cutoff (210 in the automatic pool), 162 manual only at some time, and 11 small date
+differences from eval2, all explained. All 35 of 35 checks pass, and all 22 tracer and random mentors
+match the independent replay. M1 can be trusted as the input for M2 and M4.
+"""),
 ]
 
 

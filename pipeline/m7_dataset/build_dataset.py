@@ -250,9 +250,12 @@ def main(argv: list[str] | None = None) -> None:
     # npz in the paper's layout (same key names, so M8 can reuse legacy_parity). Missing indicators (one per block is
     # enough, because values in the same block are always missing together) go at the end of the temporal block,
     # and their names are added to temporal_cols too.
+    # Duplicates are removed within a block only: two blocks that happen to be missing for the same rows (e.g. empty
+    # question text has neither a Perspective score nor an embedding) still get one indicator each.
     seen, keep_ind = set(), []
     for c in ind:
-        sig = tuple(imp[c].to_numpy())
+        block = next(k for k, v in blocks.items() if c[:-len("_missing")] in v)
+        sig = (block, tuple(imp[c].to_numpy()))
         if sig not in seen:
             seen.add(sig)
             keep_ind.append(c)

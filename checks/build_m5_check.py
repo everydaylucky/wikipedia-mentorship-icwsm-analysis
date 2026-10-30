@@ -24,6 +24,70 @@ CELLS = [
 md("""
 # M5 analysis sample, treatment variables, anchors, and outcomes: checks
 
+## Plain-language guide
+
+**Why the study needs this module.** The study asks: when a newcomer on English Wikipedia asks their mentor a
+question and gets a reply, are they more likely to keep editing? To answer this we need, for each newcomer, three
+things: who is in the study (the sample), whether they got a reply (the treatment), and what they did afterwards
+(the outcomes). M5 builds exactly these three things. Every effect estimate in the paper is computed from the
+table M5 writes.
+
+**What data it uses, and from where.** All inputs were made by earlier modules from public Wikipedia data:
+
+* the questions newcomers posted on mentor talk pages and the full conversation under each question (M2,
+  `data/interim/m2/questions.parquet` and `turns.jsonl`);
+* every edit each newcomer made, with the time, the namespace (the kind of page: 0 = an article) and tags, plus,
+  for edits that were later undone ("reverted"), the time they were undone when we could find it (M3,
+  `data/interim/m3/mentee_edits/` and `data/raw/m3/revert_times*.jsonl`);
+* who is allowed into the study and why others are not (M4, `data/interim/m4/eligibility.parquet`).
+
+**What it does, step by step.**
+
+1. For each newcomer who asked, keep only their first question.
+2. Remove people step by step for clear reasons (for example: the account was created by someone else, the
+   question thread cannot be found, the question was deleted right away, the text is empty, the question is not
+   in English). The count removed at each step is the "sample funnel".
+3. Decide the language of each question with a standard language detector (fastText).
+4. Set the **treatment**: `treat = 1` if anyone other than the newcomer replied to the question before the data
+   cutoff (2026-04-20 14:00 UTC), otherwise `treat = 0` (the "control" group). Two narrower versions are also
+   stored: a reply by the assigned mentor, and a reply within 48 hours.
+5. Set a start time for counting (the **anchor**). For a treated newcomer it is the time of the first reply.
+   A control newcomer never got a reply, so there is no natural start time. If we started their clock at the
+   question time, they would get a few extra hours of counting compared with treated people, and the groups
+   would not be comparable. So each control person gets a **pseudo-reply time**: question time plus a delay drawn
+   at random from the real reply delays of the treated group.
+6. Count the **outcomes**: what the newcomer did strictly after the anchor. The main one (Y1) is "made at least
+   one article edit within 14 days after the anchor". Others count edits, active days, namespaces, and reverted
+   edits, in windows from 7 to 180 days.
+7. Mark **right-censoring**: if the anchor is so recent that the window (for example 14 days) ends after the
+   cutoff, we cannot see the whole window, so a flag `oc_eligible_14d = 0` says "follow-up incomplete" and the
+   analysis leaves this person out for that window.
+
+**What it writes (numbers from the run on the final data, cutoff 2026-04-20T14:00Z).**
+
+* `data/interim/m5/sample.parquet`: one row = one newcomer who asked a tagged mentor question (37,095 rows,
+  229 columns). Key columns: `mentee_uid` (the user id), `q_ts` (question time), `in_sample` (in the main
+  analysis sample: 34,073 people), `treat` (got a reply: 26,176 treated, 7,897 control), `anchor` (start time),
+  `pseudo_lag_days` (the drawn delay, controls only), and the outcomes `oc_*`. Columns ending in `__median`,
+  `__p25`, `__p75`, `__zero`, `__multi` are robustness versions that use other pseudo delays for controls.
+* `results/tables/sample_funnel.csv`: one row = one removal step (15 rows), with how many were removed and how
+  many remain. This is paper Appendix Table A.
+* `data/interim/m5/lag_info.json`: one small record describing the treated reply delays (median, quartiles, mean).
+* `data/interim/m5/manifest.json`: when M5 ran, on which cutoff, with which random seed, and headline counts.
+* `results/m5_report.json`: the summary written by the last cell of this notebook.
+
+### How to read this notebook
+
+* All outputs are already saved below each cell. You do not need to run anything.
+* `[OK ]` means a rule held for every row; `[FAIL]` would mean it was broken somewhere. Tables with a `match`
+  column compare a value recomputed in this notebook with the stored value and end with `all fields match` (good)
+  or `MISMATCH in: [...]` (a problem).
+* An **invariant** is a rule that must be true for every row (for example "each person appears once").
+* A **tracer** is a newcomer chosen in advance and followed through every module, so the same person can be
+  checked by hand from start to end. A **random sample** is a few rows drawn at random to look at raw data next
+  to the processed values.
+* Code in this notebook recomputes things independently from the raw data, without calling the pipeline code.
+
 ## 1. Module description
 
 **What M5 does.** `pipeline/m5_sample/build_sample.py` and `outcomes.py` turn the M2 questions, the M3 edit
@@ -47,10 +111,14 @@ histories and the M4 eligibility flags into one row per asker (`data/interim/m5/
 definitions (Section 3.2), the pseudo anchor for controls (Section 3.3), and every effect estimate on Y1 to Y6 and
 the secondary outcomes (all of them use these columns through M7 and M8).
 
-**How to use this notebook.** Run it from top to bottom. Each check prints `[OK ]` or `[FAIL]`. Each comparison of
+**How to use this notebook.** The saved outputs are from the run on the final data (cutoff 2026-04-20T14:00Z).
+To rerun, run it from top to bottom. Each check prints `[OK ]` or `[FAIL]`. Each comparison of
 a hand recomputation with the stored data prints a table with a `match` column and ends with
 `all fields match` or `MISMATCH in: [...]`. Random rows are drawn with `SEED` in the next cell: change `SEED` to any
 other integer and run again to look at fresh rows. Links open the raw record on Wikipedia.
+
+**What the next cell does.** It loads the M5 table and the raw inputs this notebook needs to recompute things by
+itself: the conversation turns of every first question, and every edit of the people who have outcomes.
 """),
 code(r'''
 import json, sys, re
@@ -114,6 +182,13 @@ EMPTY = E.iloc[0:0]
 print(f"edits loaded {len(E)} | revert times known {len(REV)} (ignored {n_late} rows fetched after M5 started at {m5_start})")
 '''),
 md("""
+**What the output shows.** 37,095 newcomers asked a question; 34,073 are in the main sample; 34,985 have outcomes
+(the main sample plus 912 people who are only in the wider "unrestricted" robustness sample). About 3.2 million
+edits of these people were loaded, and the undo ("revert") time is known for 37,653 reverted edits. The code
+comment above says the revert-time download might still be adding rows; in this run 0 rows had to be ignored,
+so the file is exactly what M5 used.
+"""),
+md("""
 ### Helper: my own recomputation of every outcome
 
 `hand_outcomes(edits, anchor)` is written here from the definitions in the paper and in `outcomes.py` section 1,
@@ -121,6 +196,10 @@ without calling the pipeline. Notation: a window (lo, hi] means edit time > anch
 days; "main" = namespace 0 (articles); "even" = even namespaces (everything except talk pages); "days" = number
 of distinct UTC dates; "kept" = not reverted before the cutoff. The anchor is cut to whole seconds, as in the
 pipeline (edit times are whole seconds, so this changes nothing except exact ties).
+
+**In plain words.** This cell writes a second, independent version of the outcome rules. Later cells run it on
+raw edits and compare its answers with what the pipeline stored. If two separate pieces of code agree, a bug in
+one of them is unlikely. "Pseudo-lag versions" are the same outcomes computed with other control start times.
 """),
 code(r'''
 WINDOWS = (7, 14, 21, 28, 30, 60, 180)
@@ -177,10 +256,16 @@ def turns_table(turns, first_idx):
 print("main outcomes:", len(MAIN_KEYS), "| outcomes with pseudo-lag versions:", len(VAR_KEYS))
 '''),
 md("""
+**What the output shows.** The helper defines 35 main outcomes. 28 of them have robustness versions (the other 7
+are the follow-up flags `eligible_*`, which do not need them).
+
 ## 2. Files, manifest, and data dictionary
 
 Files written by M5, the manifest (when it ran, against which cutoff, with which seed), and the sample funnel
 (paper Appendix Table A).
+
+**What this checks.** That the output files exist, were made on the final cutoff, and that the headline counts and
+the funnel are what the paper reports. This is the basic record of which data the paper numbers come from.
 """),
 code(r'''
 for p in (M5 / "sample.parquet", M5 / "lag_info.json", M5 / "manifest.json", config.RESULTS / "tables" / "sample_funnel.csv"):
@@ -190,11 +275,23 @@ print(json.dumps(man["counts"], indent=1))
 display(fun)
 '''),
 md("""
+**What the output shows.** M5 ran on cutoff 2026-04-20T14:00:00Z with random seed 42. Of 37,095 askers, 34,073 stay
+in the main sample: 26,176 treated (got a reply) and 7,897 control. 24,960 got a reply from their assigned mentor
+and 22,426 got a reply within 48 hours. The typical (median) reply came 0.237 days (about 5.7 hours) after the
+question; the mean is larger (1.83 days) because a few replies came very late. The funnel shows the two largest
+removal steps are "not English" (1,032) and "question removed immediately" (841, mostly spam that was reverted).
+The raw share with an article edit in 14 days is 0.222 for treated and 0.175 for control; this is a simple
+comparison, not the causal estimate, which comes later in M8 after adjusting for differences between groups.
+"""),
+md("""
 ### Data dictionary: `sample.parquet`
 
 One row per asker. The `checked in` column names the cell that verifies the column (3 = invariants,
 4 = paper comparison, 5a/5b/5c/5d/5e = tracer and random samples, 6 = edge cases). The last cell of this
 section checks that every column of the file is listed here.
+
+**What this checks.** Every column gets a meaning in words, so a reader can understand the table without reading
+code. The output is the list itself, plus a short note about the 140 robustness columns.
 """),
 code(r'''
 D = {}  # column -> (meaning, checked in)
@@ -290,6 +387,10 @@ print(f"\nplus {sum('__' in c for c in D)} robustness columns oc_<outcome>__<ver
 for v in VARIANTS: print(f"   __{v}: {VMEAN[v]}")
 print("\nOther files: sample_funnel.csv (step, removed, remaining; checked in 5d); lag_info.json (n_lags, median, p25, p75, mean, zero, n_multi; checked in 3)")
 '''),
+md("""
+**What this checks.** That the dictionary above and the real file have exactly the same columns, so no column is
+undocumented and no documented column is missing.
+"""),
 code(r'''
 missing = [c for c in s_all.columns if c not in D]
 extra = [c for c in D if c not in s_all.columns]
@@ -297,10 +398,18 @@ print("columns in the file but not in the dictionary:", missing)
 print("columns in the dictionary but not in the file:", extra)
 '''),
 md("""
+**What the output shows.** Both lists are empty: all 229 columns of `sample.parquet` are documented. Passed.
+
 ## 3. Invariants
 
 Each line is a rule that must hold for every row. Several of them recompute a column from raw data for **all**
 rows (treatment from the raw thread turns, pseudo lags by replaying the random draws).
+
+**What this checks.** Basic logic of the table (one row per person, flags agree with each other), that the
+treatment can be rebuilt from the raw conversation for every person, that every control's pseudo-reply time is
+exactly the random draw it should be, and that the outcomes are consistent with each other (for example, "edited
+within 7 days" can never be 1 when "edited within 14 days" is 0). Errors here would directly change the paper's
+treatment groups or outcomes.
 """),
 code(r'''
 ck = Checks()
@@ -402,12 +511,22 @@ ck.add("control: __multi of a 0/1 outcome lies in [0, 1] and is a multiple of 1/
 ck.report()
 '''),
 md("""
+**What the output shows.** All 51 of 51 rules passed. The treatment recomputed from the raw conversation matches
+the stored treatment for every one of the 34,985 people (0 differ), and every control's pseudo-reply delay equals
+the replayed random draw. The "FutureWarning" lines are a notice from the pandas library about a future
+version; they are not errors and do not change any result.
+"""),
+md("""
 ## 4. Comparison with the paper version (sample overlap and treatment agreement; I-34, I-50)
 
 The paper sample (`psm_dataset.npz`) is matched to the new sample by the revid of the first question. Where the
 treatment disagrees, the usual reason is that the paper version only read the main talk page on the day it was
 crawled (replies in archived or deleted sections were lost), while the new version reads the talk page as it was at
 the cutoff, its archives, and the revision history.
+
+**What this checks.** How the new data compares with the earlier, reviewed version of the paper data: how many
+people are in both, and how often both versions agree on whether a person got a reply. A revid is the unique
+number Wikipedia gives every saved edit, so it identifies the same question in both versions.
 """),
 code(r'''
 z = np.load(config.EXTERNAL["paper_npz"], allow_pickle=True)
@@ -423,12 +542,26 @@ print("\nwhere the treatment disagrees, source of the new thread:", dis.thread_o
 display(pick(dis, 10, SEED)[["first_question_revid", "q_ts", "page_title_at_q", "paper_treat", "treat", "first_replier_role", "thread_origin"]])
 '''),
 md("""
+**What the output shows.** The old version had 35,381 people and the new one 34,073; 32,366 are in both. On these,
+the treatment agrees for 30,957 people (95.65%, the `treat_agreement_with_paper` = 0.9565 in section 8), and Y1
+agrees for 98.46%. It is not 1 because the old version had known errors that are now fixed. 1,160 people had no
+reply in the old version but do now: the old crawl read only the current talk page, so replies in sections that
+had been archived or deleted were missed (issue I-50). 249 go the other way (reply before, none now); these most
+likely come from the fix where an unsigned or oddly signed question was mistaken for a reply to itself (issue I-55)
+and from archive pages where one question picked up replies to other newcomers (issue I-56). A reviewer should
+know that the paper's results are recomputed on the corrected treatment, not on the old one.
+"""),
+md("""
 ## 5. Tracer samples and random samples: raw data next to processed values
 
 ### 5a. Tracer newcomers (fixed list in `pipeline/common/tracer.py`)
 
 For each tracer newcomer: the anchor, the article edits in the 14 days after it, and every main outcome recomputed
 by `hand_outcomes` and compared with the stored value.
+
+**What this checks.** For each fixed tracer newcomer, the edits after their start time are shown next to all 35
+outcomes, recomputed here and compared with the stored ones. Each person has a link to their real contribution
+history on Wikipedia, so anyone can check the edits by hand.
 """),
 code(r'''
 tr = tracer_frame()
@@ -446,6 +579,11 @@ for uid in [int(u) for u in tr[tr.kind == "mentee"].uid.dropna()]:
     compare(hand_outcomes(ed, r.anchor), {k: r[f"oc_{k}"] for k in MAIN_KEYS})
 '''),
 md("""
+**What the output shows.** 12 tracer newcomers have outcomes (9 treated, 3 control), and every one ends with
+`all fields match`. One detail that can look odd: a person may edit a user talk page (namespace 3) and yet have
+`unique_ns` = 1, because only even namespaces (non-talk pages) count for that outcome. Talk pages have odd numbers.
+"""),
+md("""
 ### 5b. Random treated and random control people: thread, anchor, edits, and every outcome
 
 For each person:
@@ -457,6 +595,10 @@ For each person:
 4. all 35 main outcomes recomputed by `hand_outcomes` and compared with the data;
 5. for controls, the robustness versions: `__median/__p25/__p75/__zero` recomputed at the fixed lags, and `__multi`
    recomputed as the mean over the 20 replayed draws.
+
+**What this checks.** The full chain for random people, from the raw conversation to the treatment, from the
+treatment to the start time, and from the raw edits to every outcome. The next cell shows 5 random treated people
+and the one after it 5 random control people.
 """),
 code(r'''
 def show_person(r):
@@ -504,17 +646,31 @@ print("RANDOM TREATED PEOPLE (main sample)")
 for r in pick(s[s.treat == 1], N_RANDOM, SEED).itertuples():
     show_person(r)
 '''),
+md("""
+**What the output shows.** For all 5 treated people the marked first reply is a real reply by someone else (four by
+the page mentor, one by another mentor), and the start time equals that reply time. All outcomes match. None of
+these 5 made any edit in the 180 days after the reply; this is common, since most newcomers stop editing soon
+(only about 22% of treated people make an article edit within 14 days).
+"""),
 code(r'''
 print("RANDOM CONTROL PEOPLE (main sample)")
 for r in pick(s[s.treat == 0], N_RANDOM, SEED).itertuples():
     show_person(r)
 '''),
 md("""
+**What the output shows.** For all 5 control people nobody else replied, and the stored pseudo delay equals the
+replayed random draw exactly (for example 2.8268 days), so the start time is question time plus that delay. All
+main outcomes and the robustness versions match.
+"""),
+md("""
 ### 5c. Bulk recomputation of every outcome on N_BULK random people
 
 The same independent code, run on `N_BULK` random people with outcomes (treated and control), for all 35 main
 outcomes and, for the controls among them, all 28 x 5 robustness versions. The table shows the share of rows that
 match; rows that do not match are listed.
+
+**What this checks.** The same comparison as 5b, but on 1,000 random people at once, so that rare mistakes would
+also show up.
 """),
 code(r'''
 bulk = pick(s_any, N_BULK, SEED)
@@ -546,11 +702,18 @@ else:
     print("  -> all fields match")
 '''),
 md("""
+**What the output shows.** 1,000 people (762 treated, 238 control) gave 68,320 comparisons. All 175 outcome columns
+match on every row (the empty table means there is no column with a mismatch). Passed.
+"""),
+md("""
 ### 5d. Sample funnel: every step recomputed from the flags, with random excluded rows
 
 The steps are applied in the order of `build_sample.funnel`: first the M4 exclusion reasons, then the M2 parse
 flags, the empty-text rule, and the language rule. The count at every step is recomputed here and compared with
 `results/tables/sample_funnel.csv`; then each person's first failing step is compared with `exclude_step`.
+
+**What this checks.** That the sample table in the paper (Appendix Table A) can be rebuilt from the per-person
+flags, and that each removed person is listed under the correct reason.
 """),
 code(r'''
 flags = s_all.parse_flags.map(lambda f: set(f) if f is not None else set())
@@ -578,6 +741,11 @@ print("each person's first failing step == exclude_step:", bool((my_step.fillna(
 print("main sample == people who pass every step:", bool((left == s_all.in_sample).all()))
 '''),
 md("""
+**What the output shows.** Every step's count matches the funnel file, from 37,095 at the start to 34,073 at the
+end, and each person's reason matches. In total 3,022 people were removed. The step "temporary account" removes 0
+people: no temporary accounts appear among the askers in this data, so the step is kept only for completeness.
+"""),
+md("""
 Random excluded rows for every step, with the raw evidence:
 
 * M4 reasons: account creation (`creation_action`, `registered_at`; `registered_before_mentorship` means registered
@@ -589,6 +757,9 @@ Random excluded rows for every step, with the raw evidence:
 * `question_text_empty`: the raw wikitext. The rule is "nothing is left once URLs are removed from the plain text", so a
   question that is only a bare link also counts as empty;
 * `not_english`: the text with the fastText label and probability.
+
+**What this checks.** That the removal reasons are real, by showing the raw evidence for a few removed people of
+each kind. A reader can follow the links to see the original edit or log entry on Wikipedia.
 """),
 code(r'''
 claims = pd.read_parquet(config.INTERIM / "m4" / "claims.parquet")
@@ -621,6 +792,13 @@ for step, g in s_all[s_all.exclude_step.notna()].groupby("exclude_step"):
             print(f"    lang={r.lang} prob={r.lang_prob} method={r.lang_method}  text: {str(r.question_text)[:200]!r}")
 '''),
 md("""
+**What the output shows.** The examples support each reason. Test and alternative accounts were claimed by a mentor
+with comments such as "This is my alt-account". Autocreated accounts were made on another language Wikipedia.
+"Empty" questions contain only a signature or only a bare link. "Reply before question" cases are threads where
+older comments, sometimes years older, sit in the same section, so the location of the question is doubtful.
+The not-English examples are Tagalog, Arabic, Indonesian, French, and one that is only punctuation ("?!.").
+"""),
+md("""
 ### 5e. Language decisions recomputed with fastText
 
 The rules of `detect_language` (D5) are rewritten here and applied with the fastText model file directly:
@@ -629,6 +807,10 @@ lowercase; top probability >= 0.5 -> top label (`fasttext_lid176`); otherwise En
 the ASCII rule passes (`fasttext_uncertain_en`), else the top label (`fasttext_uncertain`). The ASCII rule: at least
 80% of the letters are ASCII. For N_RANDOM English and N_RANDOM non-English decisions, and N_RANDOM rows of each
 method, we show the text, the top-3 fastText labels, and compare lang, lang_prob, lang_method.
+
+**What this checks.** The paper keeps only English questions, because the text features in M6 assume English.
+This cell rewrites the language rule independently and checks the stored decision on random examples of each kind.
+fastText is a widely used tool that guesses the language of a text and gives a probability for its guess.
 """),
 code(r'''
 import fasttext
@@ -668,7 +850,20 @@ show_lang(pick(s_all[~s_all.is_english & s_all.lang_method.ne("empty")], N_RANDO
 for meth in ("ascii_fallback_short", "fasttext_uncertain_en", "fasttext_uncertain"):
     show_lang(pick(s_all[s_all.lang_method == meth], N_RANDOM, SEED), f"random rows decided by {meth}")
 '''),
-md("## 6. Edge-case lists"),
+md("""
+**What the output shows.** Every recomputed decision matches the stored one. The rule is not perfect, and this is
+visible in the examples: under "uncertain, English" one Somali text is labelled English, and under "uncertain" the
+short English text "do u love" is labelled not English. Very short texts like "Hi" or an email name are counted as
+English by the simple short-text rule. These cases are rare (1,352 and 78 rows use the two uncertain methods,
+out of 37,095) and are a known limit of automatic language detection, not a coding error.
+"""),
+md("""
+## 6. Edge-case lists
+
+**What this checks.** Unusual cases that could quietly bias the results: very late replies, replies in the same
+minute as the question, people whose follow-up window runs past the cutoff, edits at exactly the start time, and
+reverts that happened after the cutoff.
+"""),
 code(r'''
 print("Treated people whose reply came 365 days or more after the question (flag long_reply_lag; anchor is still the real reply):")
 display(s[s.long_reply_lag][["mentee_uid", "first_question_revid", "q_ts", "first_reply_ts", "reply_lag_days"]].head(10))
@@ -693,7 +888,31 @@ p = M5 / "_issues" / "summary.json"
 if p.exists():
     print("\nM5 issue log:", json.dumps({k: v["n"] for k, v in json.loads(p.read_text()).items()}))
 '''),
-md("## 7. Distributions: reply lags and pseudo lags, language methods, follow-up, outcome means"),
+md("""
+**What the output shows.**
+* No treated person in the main sample waited 365 days or more for a reply.
+* 19 replies carry a time a few seconds before the question. Reply signatures show only the minute, so a reply
+  in the same minute looks slightly earlier. These 19 are the reason the pool of treated delays has 26,157
+  values, not 26,176 (negative delays are left out of the pool).
+* 555 people (1.6% of the main sample) started less than 14 days before the cutoff, so their 14-day window is
+  incomplete; they are flagged and left out of 14-day outcomes. The latest anchors are controls whose pseudo time
+  falls after the cutoff, which is expected for questions asked just before it.
+* Only 5 edits fall in exactly the anchor second; they are not counted, which has no visible effect.
+* Worth a reviewer's attention: 133,016 edits carry the "reverted" tag but have no known revert time, so they are
+  counted as reverted. Revert times were looked up only for edits within 30 days of the question or of the cutoff,
+  where timing matters most. In that group 997 reverts happened after the cutoff and are correctly counted as not
+  reverted. For the edits not looked up, the pipeline notes that at most about 4.1% of such reverts would fall
+  after the cutoff, so the reverted outcomes (Y6 and the "constructive" ones) may be slightly overstated.
+* The first replier was the page mentor in 24,578 cases, another mentor in 569, and someone else in 1,029. The
+  M5 issue log is empty.
+"""),
+md("""
+## 7. Distributions: reply lags and pseudo lags, language methods, follow-up, outcome means
+
+**What this checks.** Summary numbers a reader can compare with the paper: whether the control pseudo delays look
+like the real treated delays (they should, since they are drawn from them), how languages were decided, how many
+people have complete follow-up, and the raw outcome means by group.
+"""),
 code(r'''
 print("treated reply lag (days), from lag_info.json:", {k: round(v, 3) for k, v in info.items() if isinstance(v, float)})
 print("control pseudo lag quantiles:", s[s.treat == 0].pseudo_lag_days.quantile([.25, .5, .75]).round(3).to_dict())
@@ -707,7 +926,21 @@ print("\nmain outcomes, mean by treatment (main sample, complete 14-day follow-u
 display(s[s.oc_eligible_14d == 1].groupby("treat")[[f"oc_{k}" for k in ("primary", "n_mainspace_edits_14d", "cross_day_any_14d", "unique_ns",
         "active_days_30d", "reverted_any", "primary_constructive", "sec2")]].mean().round(4).T)
 '''),
-md("## 8. Summary (results/m5_report.json)"),
+md("""
+**What the output shows.** The control pseudo delays (quartiles 0.044, 0.244, 0.817 days) closely match the real
+treated delays (0.041, 0.236, 0.800), as intended. Most languages (33,637) were decided by a confident fastText
+guess. The old ASCII-letter rule and the new rule agree for most people; 574 that the old rule called English are
+now not English (for example Spanish or Indonesian, which also use plain Latin letters). Complete follow-up is
+available for 98.4% of the sample at 14 days but only 78.3% at 180 days, so long-window outcomes use fewer people.
+Among people with complete 14-day follow-up, treated people edit articles more often than controls (Y1: 0.2217
+vs 0.1754). These are raw means before any adjustment, so they are not the paper's causal estimates.
+"""),
+md("""
+## 8. Summary (results/m5_report.json)
+
+**What this checks.** It writes the headline numbers to `results/m5_report.json` and prints the overall result of
+the checks above.
+"""),
 code(r'''
 report = {"n_askers": len(s_all), "n_sample": len(s), "n_unrestricted": int(s_all.in_sample_unrestricted.sum()),
           "treated": int(s.treat.sum()), "control": int((s.treat == 0).sum()),
@@ -717,6 +950,12 @@ report = {"n_askers": len(s_all), "n_sample": len(s), "n_unrestricted": int(s_al
 print(json.dumps({k: v for k, v in report.items() if k != "funnel"}, indent=1))
 print(f"invariants: {sum(ok for _, ok in ck.items)} / {len(ck.items)} passed; bulk outcome comparisons with a mismatch: {len(bad)}")
 '''),
+md("""
+**What the output shows.** 37,095 askers, 34,073 in the main sample (26,176 treated, 7,897 control), 34,985 in the
+unrestricted sample. 32,366 people overlap with the earlier reviewed version, and the treatment agrees for 0.9565
+of them; the difference comes from the fixed reply-finding errors explained in section 4. All 51 invariants passed
+and the bulk recomputation found 0 mismatches.
+"""),
 ]
 
 

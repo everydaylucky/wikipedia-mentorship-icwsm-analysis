@@ -23,6 +23,65 @@ CELLS = [
 md("""
 # M7 PSM dataset: check notebook
 
+## Plain-language guide
+
+**Why the study needs this module.** The study asks: if a newcomer's first question to their mentor gets a reply,
+is that newcomer more likely to keep editing Wikipedia? People who get a reply may differ from people who do not
+(for example, they may write longer, clearer questions, or have edited more already). To compare fairly, the
+analysis (M8) needs one clean table that lists, for every newcomer, whether they got a reply, whether they kept
+editing, and everything we know about them **before** they asked. M7 builds that table. Nothing in M8 can run
+without it.
+
+**Two words used everywhere below.**
+* A **covariate** is a background fact about a person or their question that was already true before they asked,
+  for example "number of edits before the question" or "length of the question". The propensity score model (a
+  model that estimates how likely each person was to get a reply, given their covariates) uses these facts so that
+  people who got a reply are compared only with similar people who did not.
+* A **missing indicator** is an extra 0/1 column that says "this value was missing and we filled it in". It lets
+  the model tell a real value apart from a filled-in one.
+
+**Inputs (from earlier modules).**
+* M5: the sample (who is in the study), the treatment (got a reply from the mentor or not) and the outcomes (later editing).
+* M3: each newcomer's raw edits, log entries (page creations, thanks), abuse filter hits and registration time.
+* M6: text features of the question, toxicity scores (Perspective), question-type labels, and text embeddings
+  (long lists of numbers that describe the meaning of the question).
+* M2 and M1: all questions on each mentor's talk page and the mentor roster (used only for the mentor block).
+
+**What M7 does, step by step.**
+1. **Sample rule.** Keep one row per newcomer who is in the M5 main sample or in the wider M5 sample used for a
+   robustness check (the "unrestricted" sample, which also keeps accounts created before the mentorship system
+   started, auto-created accounts, or accounts made by someone else). The flag `in_sample` marks the main sample.
+2. **Covariates.** Compute 162 covariates in blocks: edit history before the question (E, 32), question text
+   (Qtext, 37), toxicity scores (Qpersp, 8), question type (Qtype, 5), 20 summary numbers of the question embedding
+   (emb20, made with PCA, a standard way to shrink many numbers into a few), and time (60: year-month of the
+   question and whether the person was editing an article when asking). A separate mentor block (M, 6) is built
+   but used only in one ablation (a test that drops or adds a group of covariates).
+3. **No future information.** Every covariate uses only records from strictly before the question time `q_ts`.
+4. **Missing values.** Only the toxicity scores and the embedding can be missing (46 people each, about 0.13%).
+5. **Imputation** (filling in missing values). A missing value is replaced by the median of that column, and a
+   missing indicator is set to 1. Because all toxicity indicators are identical to each other (and the same for the
+   embedding), the matrix for the model keeps just one indicator per block. So the propensity model gets
+   162 + 2 = **164 columns**.
+
+**Outputs (in `data/analytic/`).** In this run on the final data (cutoff 2026-04-20T14:00Z):
+* `psm_dataset.parquet`: **one row = one newcomer** (their first question to a mentor). 34,985 rows and 428 columns.
+  Key columns: `mentee_uid` (user id), `first_question_revid` (the edit that posted the question), `q_ts`
+  (question time), `treat` (1 = got a reply), `oc_*` (outcome columns, for example `oc_primary`, the main
+  "kept editing" outcome), `in_sample` (1 = main sample, 34,073 people), the 162 covariates, the 6 mentor
+  columns and the missing indicators.
+* `data_dictionary.yaml`: one entry per column: its block, type and missing rate before imputation.
+* `psm_dataset_legacy_layout.npz`: the same data as ready-made number matrices in the layout of the paper
+  version (34,985 rows; for example `X_E` has 32 columns and `X_temporal` 62). This is the file M8 reads.
+
+**How to read this notebook.**
+* The outputs below are saved from a real run. You do not need to run anything; just read.
+* Each check prints `[OK ]` (the rule holds) or `[FAIL]` (it does not). In this run all 53 checks pass.
+* An **invariant** is a rule that must be true for every row (for example "edits in the last 24 hours can not be
+  more than edits in the last 7 days").
+* A **random sample** is a few people picked by chance, shown in full detail so you can compare raw records with
+  the dataset by eye. A **tracer** is one of a fixed list of real newcomers that is followed through every module.
+* Each code cell has a "What this checks" note before it and a "What the output shows" note after it.
+
 ## 1. What this module does, and how to use this notebook
 
 **Module**: `pipeline/m7_dataset/build_dataset.py`. Issues: I-01 to I-05, I-08, I-29, I-33, I-37. Rules: R7.2, R7.8.
@@ -49,10 +108,14 @@ M7 also writes `psm_dataset_legacy_layout.npz`, the same data in the layout of t
 covariate balance and common support, ablation, robustness checks, window and subgroup results (Table 5),
 interaction tests, and the reply-feature models (Tables 6 and 7) all use the covariates and outcomes built here.
 
-**How to use**: run the cells from top to bottom. Every check prints `[OK ]` or `[FAIL]`. Comparison tables
-have a `match` column. In section 5 you see random people: their raw edits, logs and abuse filter hits are
-printed next to the values in the dataset, and you can open their contributions on Wikipedia with the links.
-To draw a fresh random sample, change `SEED` in the next cell and run again.
+**How to use**: the saved outputs can be read as they are. To check again yourself, run the cells from top to
+bottom. Every check prints `[OK ]` or `[FAIL]`. Comparison tables have a `match` column. In section 5 you see
+random people: their raw edits, logs and abuse filter hits are printed next to the values in the dataset, and you
+can open their contributions on Wikipedia with the links. To draw a fresh random sample, change `SEED` in the next
+cell and run again.
+
+**What this checks.** The next cell loads the three output files and counts the rows. It is the setup for
+everything below.
 """),
 code(r'''
 SEED = 0        # change this number to draw a fresh random sample of people in section 5
@@ -83,11 +146,20 @@ ck = Checks()
 print(f"rows {len(df)} | main sample (in_sample) {int(df.in_sample.sum())} | covariates {len(COV)} + M block {len(B['M'])}")
 '''),
 md("""
+**What the output shows.** On the final data (cutoff 2026-04-20T14:00Z) the dataset has 34,985 newcomers, of whom
+34,073 are in the main sample (the N of the paper). The other 912 are only in the wider robustness sample. There
+are 162 covariates plus the 6 mentor columns. The 2 missing indicators that bring the model input to 164 columns
+are counted separately (see 2.2 and section 3).
+"""),
+md("""
 ## 2. Files, manifest and data dictionary
 
 ### 2.1 Files and manifest
 The manifest records when M7 ran and a fingerprint (sha256) of each input. If an input file changed after M7 ran,
 the dataset is out of date and M7 should be run again.
+
+**What this checks.** That the three output files exist, when M7 ran, which data cutoff it used, and that its
+inputs have not changed since (so the dataset is up to date). It also lists the size of each matrix in the npz file.
 """),
 code(r'''
 for p in [config.ANALYTIC / "psm_dataset.parquet", config.ANALYTIC / "data_dictionary.yaml",
@@ -102,10 +174,20 @@ display(inp)
 print("\nnpz arrays:", {k: Z[k].shape for k in ["X_E", "X_Qtext", "X_Qpersp", "X_Qtype", "X_emb20", "X_temporal", "X_M", "y_treat"]})
 '''),
 md("""
+**What the output shows.** M7 used the data cutoff 2026-04-20T14:00:00Z, and both recorded inputs (the M5 sample
+and the M6 question features) are `True` under `unchanged_since_M7`, so the dataset is current. Of the 34,985
+rows, 26,881 got a reply (treated). The npz matrices all have 34,985 rows; their widths add up to
+32 + 37 + 8 + 5 + 20 + 62 = 164 model columns (`X_temporal` has 62 = 60 time columns + 2 missing indicators).
+The manifest only fingerprints two inputs; the raw M3 files are instead checked by the full recomputation in 5.1.
+"""),
+md("""
 ### 2.2 Data dictionary: every covariate, its meaning, block, missing rate, and where it is verified
 
 `missing_rate` is the share of rows that were missing before imputation (from data_dictionary.yaml).
 `verified in` says which cell of this notebook checks the variable against the raw data.
+
+**What this checks.** It lists every covariate in plain words, so a reader can see what goes into the model, how
+often it was missing, and where in this notebook it is tested.
 """),
 code(r'''
 MEAN = {
@@ -155,9 +237,21 @@ with pd.option_context("display.max_rows", 500):
 print("\nmissing indicators added by imputation:", dd["missing_indicators"])
 '''),
 md("""
+**What the output shows.** The table has one line per covariate (162 plus the 6 mentor columns). Almost every
+missing rate is 0; only the 8 Perspective scores and the 20 embedding components have a missing rate of 0.0013
+(46 of 34,985 rows). The parquet keeps 28 missing indicators (one per column with gaps), but they are identical
+within each block, so the model input keeps only 2 (`q_persp_toxicity_missing` and `emb_pc1_missing`).
+"""),
+md("""
 ## 3. Invariants
 
 Each line is a rule that must hold for every row. A `[FAIL]` means the data break the rule.
+
+**What this checks.** Basic logic for all 34,985 rows: each person and each question appear once; the rows,
+treatment and outcomes are exactly those of M5; no covariate is missing after imputation; counts are whole numbers
+and fit inside each other; no edit at or after the question is used (the "leakage guard": leakage means using
+future information, which would bias the result); time dummies match the question date; and the npz that M8 reads
+holds exactly the same numbers as the parquet.
 """),
 code(r'''
 s5 = pd.read_parquet(config.INTERIM / "m5" / "sample.parquet")
@@ -243,12 +337,22 @@ print("\nconstant columns in the main sample (they carry no information; Standar
 ck.report()
 '''),
 md("""
+**What the output shows.** All 42 rules pass on the final data. In particular, nobody's last counted edit is at or
+after the question, the treatment and outcome columns equal M5 for every row, and every npz matrix equals the
+parquet. One column, `q_has_unsigned` (the question used an {{unsigned}} template), is the same for everyone in the
+main sample. A reviewer might worry about this; it is harmless, because a column that never changes carries no
+information and the model's scaling step turns it into all zeros.
+"""),
+md("""
 ## 4. Comparison with the paper version
 
 For people who are in both datasets (matched on the revid of the first question), how often each E-block
 variable has exactly the same value. Differences are expected where the definition was fixed:
 n_edits_1d / 7d now use hours (I-08), log_create counts only page creations (I-03), n_reverts counts only edits
 already reverted before the question (R7.8), and edits that were fetched later (I-53).
+
+**What this checks.** How close the rebuilt edit-history covariates are to those used in the earlier paper
+version. Large changes would need a reason, because they could change the paper's results.
 """),
 code(r'''
 z = np.load(config.EXTERNAL["paper_npz"], allow_pickle=True)
@@ -267,6 +371,18 @@ for c in E_COLS:
 display(pd.DataFrame(rows))
 '''),
 md("""
+**What the output shows.** 33,201 people are in both versions (paper 35,381 rows, new 34,985). Most variables are
+the same for over 99% of people. The expected, explained differences are: `n_edits_1d` (92% the same) and
+`n_edits_7d` (97%), which now use true 24 and 168 hour windows; `n_reverts` (93%), which now counts only reverts
+that happened before the question; and `log_create` (only 1.6% the same, mean 1.1 vs 2.5), because the paper
+version also counted the account creation itself. `hours_since_last_edit` and `account_age_hours` look different
+in many rows (62% and 25% the same) but have correlation 1.000 and 0.999; the typical gap is about 30 seconds,
+so these are tiny timing differences. The low correlations for `log_thanks`, `n_abuse` and `n_abuse_warn`
+(0.02 to 0.13) look alarming, but at least 99.4% of rows are identical; a few very experienced accounts with huge
+counts (up to thousands) drive the correlation. In a side check restricted to the main sample, the correlation
+is 0.97 for `log_thanks` and 0.94 for `n_abuse`.
+"""),
+md("""
 ## 5. Tracer samples and random samples: raw data next to processed values
 
 ### 5.1 Our own recomputation of all 32 E-block variables, for every person
@@ -278,6 +394,10 @@ and revert times, keeps only records with timestamp **strictly before** `q_ts`, 
 Revert times: `data/raw/m3/revert_times*.jsonl` may still be growing (a collection job adds records). To
 reproduce what M7 saw, we use only records fetched before M7 started. An edit counts as reverted before Q if it
 carries the `mw-reverted` tag and either the revert time is unknown or the revert happened before Q.
+
+**What this checks.** This is the strongest test of the edit-history block: a second, independent program
+recomputes all 32 values for all 34,985 people from the raw records and compares them with the dataset. If both
+agree, a coding error in M7 is very unlikely.
 """),
 code(r'''
 m7_start = pd.Timestamp(man["finished_at"]) - pd.Timedelta(seconds=man["elapsed_sec"])
@@ -367,6 +487,11 @@ if E_BAD:
     display(pd.concat({"recomputed": MINE.loc[bad[:10], E_BAD], "in data": STORED.loc[bad[:10], E_BAD]}, axis=1))
 '''),
 md("""
+**What the output shows.** All 32 variables agree for all 34,985 people (share 1.0 everywhere); the only nonzero
+difference is about 3e-11 in `std_sizediff`, which is computer rounding. 37,653 revert times were known, and none
+of them was fetched after M7 started, so the recomputation saw exactly the data M7 saw. The check passes.
+"""),
+md("""
 ### 5.2 Random people: raw edits, logs, abuse filter hits, and all 32 E-block values
 
 For each random person we print the raw records. `used` = the record is strictly before the question and enters
@@ -376,6 +501,9 @@ Usually the first record at `q_ts` is the question edit itself (on the mentor's 
 The second table recomputes the 32 variables from the printed records and puts them next to the dataset.
 The leakage check recomputes `n_edits` including edits at or after Q: if that number differs from the stored
 value, the stored value clearly did not use those edits.
+
+**What this checks.** The same agreement, but shown record by record for 6 random people (5 from the main sample
+plus 1 with at least 10 earlier edits), so a reader can follow each number back to real Wikipedia edits.
 """),
 code(r'''
 main = df[df.in_sample]
@@ -412,10 +540,21 @@ res = {u: show_person(u) for u in RAND}
 ck.add(f"random people ({len(RAND)}): all 32 E variables match and no edit at or after Q was used", all(res.values()))
 '''),
 md("""
+**What the output shows.** For all 6 people every value matches, and the check passes. For example, the first
+person had 28 edits before the question (9 of them already reverted) and 257 after it; the first edit at `q_ts` is
+the question itself on the mentor's talk page, and it is correctly left out (counting it would give 29). The
+second person had no edits before asking, so their counts are 0 and `hours_since_last_edit` is -1, as defined.
+The `FutureWarning` messages are routine notices from the pandas library about a future change; they do
+not affect any result.
+"""),
+md("""
 ### 5.3 Tracer samples (the fixed newcomers followed through every module)
 
 Same recomputation for the fixed tracer newcomers (see `pipeline/common/tracer.py`). A tracer that is not in
 the dataset was removed by an earlier sample filter (M4/M5), which those notebooks explain.
+
+**What this checks.** That the fixed tracer newcomers, which every module's notebook follows, also get correct
+edit-history values here.
 """),
 code(r'''
 tr = tracer_frame().query("kind == 'mentee'")
@@ -434,11 +573,19 @@ display(TR)
 ck.add("tracer newcomers in the dataset: all 32 E variables match", bool(TR.loc[TR["in dataset"], "all 32 match"].all()))
 '''),
 md("""
+**What the output shows.** All 12 tracers are in the dataset and all 32 values match for each. Ten are in the main
+sample; two (with 92 and 2,073 earlier edits) are only in the wider robustness sample, which fits: the main
+sample rule (account type and registration date) leaves them out. The check passes.
+"""),
+md("""
 ### 5.4 Question blocks: dataset vs. the M6 file, for random people
 
 Qtext, Qpersp and Qtype are copied from `data/interim/m6/question_features.parquet` (joined on the revid of the
 first question). The question text is printed so you can see what the features describe. For people whose M6
 value is missing, the dataset holds the median instead (checked in 5.5).
+
+**What this checks.** That the 50 question covariates (text, toxicity, type) were copied from M6 to the right
+person without changes: shown for the 6 random people, and tested for every row.
 """),
 code(r'''
 QF = pd.read_parquet(config.INTERIM / "m6" / "question_features.parquet").set_index("first_question_revid")
@@ -461,6 +608,11 @@ ck.add("all Qtext / Qpersp / Qtype values equal the M6 file (every row where M6 
 if sum(diffs.values()): print("MISMATCH counts:", {k: v for k, v in diffs.items() if v})
 '''),
 md("""
+**What the output shows.** For all 6 random people the selected features match M6, and across all rows every
+value equals the M6 file wherever M6 has a value. The check passes, so the question features were joined to the
+right newcomers.
+"""),
+md("""
 ### 5.5 Imputation and the embedding PCA
 
 * For a person with a missing Perspective score or embedding, the dataset value must be the **median** of that
@@ -468,6 +620,9 @@ md("""
 * The 20 embedding components are recomputed here: PCA with 20 components (random_state 42) on the M6 question
   embeddings of everyone who has one. A principal component is only defined up to its sign, so we compare after
   aligning the sign.
+
+**What this checks.** That missing values were filled in as described (median plus indicator) and that the 20
+embedding summary numbers can be reproduced exactly from the M6 embeddings.
 """),
 code(r'''
 raw = df[["first_question_revid"]].join(QF[B["Qpersp"]], on="first_question_revid")
@@ -501,7 +656,16 @@ ck.add("people without an embedding hold the median component values", bool(np.a
 ck.add("npz X_emb_full equals the M6 embedding (missing set to 0)", np.allclose(Z["X_emb_full"], np.nan_to_num(full, nan=0.0)))
 '''),
 md("""
+**What the output shows.** 46 people have no Perspective score; all of them hold the column median (for toxicity,
+0.0188) with the indicator set to 1. The PCA redone here gives the same explained variance as M7 (0.3838, meaning
+the 20 components keep about 38% of the information in the full embedding) and the largest difference to the
+dataset is 0. All checks pass.
+"""),
+md("""
 ### 5.6 Temporal block: dummies vs. q_ts, for random people
+
+**What this checks.** That each random person's year-month dummy (a 0/1 column for the month of the question)
+matches the question date, and that "was editing a page" is carried over correctly.
 """),
 code(r'''
 rows = []
@@ -514,11 +678,19 @@ for uid in RAND:
 display(pd.DataFrame(rows))
 '''),
 md("""
+**What the output shows.** For all 6 people the dummy that equals 1 is the month of `q_ts`. None of these 6 was
+editing a page when asking, so `q_has_article_context` is 0 for all of them; that is common (about 16 to 22% of
+people have it, see 7.1). The all-rows version of this test is in section 3 and passes.
+"""),
+md("""
 ### 5.7 Mentor block (M): recomputed from M2 questions and M1 mentor periods, for random people
 
 For the owner of the talk page where the question was asked (`page_mentor_uid`), take all questions on that
 mentor's page before `q_ts` (M2 `questions.parquet`). A question counts as answered only if the mentor's first
 reply came before `q_ts`. Days active = `q_ts` minus the mentor's first roster start (M1 `mentor_periods.parquet`).
+
+**What this checks.** That the 6 mentor-side covariates (how busy and how responsive the mentor had been before
+this question) are correct and use no replies from the future. They feed only one ablation row in the paper.
 """),
 code(r'''
 MQ = pd.read_parquet(config.INTERIM / "m2" / "questions.parquet", columns=["question_revid", "page_mentor_uid", "q_ts", "mentor_first_reply_ts"])
@@ -550,10 +722,17 @@ for uid in RAND:
 ck.add("random people: all 6 mentor-block variables match", all(okM))
 '''),
 md("""
+**What the output shows.** For all 6 random people the recomputed mentor values match the dataset. Their mentors
+had received between 29 and 386 earlier questions. The check passes.
+"""),
+md("""
 ### 5.8 npz vs. parquet for random rows
 
 M8 reads the npz, not the parquet. For random rows we look up the same person in both files and compare a few
 values from every block, the treatment and the main outcome.
+
+**What this checks.** A by-eye version of the section 3 test that the file M8 actually reads holds the same
+person, treatment, outcome and covariates as the parquet.
 """),
 code(r'''
 okZ = []
@@ -571,9 +750,15 @@ for uid in RAND:
 ck.add("random rows: npz values equal the parquet", all(okZ))
 '''),
 md("""
+**What the output shows.** All fields match for all 6 rows, and the check passes.
+"""),
+md("""
 ## 6. Edge-case lists
 
 Cases where a rule makes a choice. Open a few with the links to see that the choice is right.
+
+**What this checks.** It counts the unusual cases (no earlier edits, unknown registration time, reverts with
+unknown timing, very large values) so a reader can judge whether the rules handle them sensibly.
 """),
 code(r'''
 ed_all = mark(ED)
@@ -600,11 +785,28 @@ display(DD.groupby("block").agg(columns=("variable", "size"), max_missing_rate=(
 print("6.8 constant columns in the main sample:", const)
 '''),
 md("""
+**What the output shows.**
+* 18,524 people (about 53%) made no edit before their question. This may look surprising, but many newcomers ask
+  their mentor first, so their history covariates are 0 by design.
+* Only 2 people have an unknown registration time (old accounts with low user ids; their -1 marks "unknown").
+* 48,956 earlier edits carry the "reverted" tag. 20,198 of these have no known revert time and are counted as
+  reverted before the question (a cautious choice); 7,072 were reverted only after the question and are
+  correctly not counted.
+* Exactly one edit per person (34,985) sits at the question time, and all are on a user talk page: these are the
+  questions themselves, correctly left out.
+* The largest values (for example 51,669 edits) all belong to experienced accounts that are not in the main sample.
+* 372 people asked a mentor who had no earlier question, so their mentor counts are 0.
+"""),
+md("""
 ## 7. Distributions
 
 ### 7.1 Treated vs. control (main sample): covariates with the largest standardized difference before adjustment
 
 These are the differences the propensity score has to remove. M8 shows the balance after stratification.
+
+**What this checks.** Before any adjustment, how different are people who got a reply ("treated") from those who
+did not ("control")? The standardized difference is the gap in means divided by the spread; values above about
+0.1 are usually called imbalanced.
 """),
 code(r'''
 d = df[df.in_sample]
@@ -613,16 +815,42 @@ g.columns = ["control_mean", "treated_mean"]
 g["std_diff"] = (g.treated_mean - g.control_mean) / d[COV].std().replace(0, np.nan)
 display(g.reindex(g.std_diff.abs().sort_values(ascending=False).index).head(20).round(4))
 '''),
-md("### 7.2 E block: summary over the main sample"),
+md("""
+**What the output shows.** The largest gap is question type: 85% of treated questions are labeled substantive
+(a real question) versus 68% of control questions (standardized difference 0.42), followed by the first embedding
+component (-0.35) and first-person wording (0.26). People who were editing a page when asking got replies less
+often (-0.16). Edit-history differences are small (at most 0.08). This is why the study adjusts for question
+content, not only for activity; M8 checks that these gaps shrink after stratification.
+"""),
+md("""### 7.2 E block: summary over the main sample
+
+**What this checks.** The typical size and the extremes of each edit-history covariate in the main sample.
+"""),
 code(r'''
 display(d[E_COLS].describe(percentiles=[.5, .9, .99]).T.round(2))
 '''),
-md("### 7.3 Questions per year (main sample) and share treated"),
+md("""
+**What the output shows.** The median person has 0 edits before the question (mean 10.4), and the account is
+usually very new (median age 0.65 hours, mean 602 hours). The distributions are very skewed: a few people have
+thousands of edits (maximum 18,243). This is normal for Wikipedia newcomers, but it means extreme values exist in
+the main sample too.
+"""),
+md("""### 7.3 Questions per year (main sample) and share treated
+
+**What this checks.** How many main-sample questions come from each year, and what share got a reply.
+"""),
 code(r'''
 display(d.assign(year=d.Q.dt.year).groupby("year").agg(n=("treat", "size"), treated_share=("treat", "mean")).round(3))
 '''),
 md("""
+**What the output shows.** The sample grows from 645 questions in 2021 (the system started in May 2021) to 14,017
+in 2025; 2026 has 4,345 because the data stop at the April 2026 cutoff. The reply share is stable, between 75.5%
+and 83.3% per year (76.8% overall), so the time dummies only need to absorb modest shifts.
+"""),
+md("""
 ## 8. Summary (written to results/m7_report.json)
+
+**What this checks.** It reruns the full list of checks and saves a short summary file.
 """),
 code(r'''
 ck.report()
@@ -633,6 +861,11 @@ rep = {"rows": len(df), "main": int(df.in_sample.sum()), "unrestricted": int(df.
 (config.RESULTS / "m7_report.json").write_text(json.dumps(rep, indent=1))
 print(json.dumps(rep, indent=1))
 '''),
+md("""
+**What the output shows.** All 53 of 53 checks pass on the final data. The dataset has 34,985 rows, 34,073 in the
+main sample, 162 covariates (164 model columns with the 2 missing indicators), and one constant column in the main
+sample (`q_has_unsigned`), which is harmless. No problems were found that would affect the paper's numbers.
+"""),
 ]
 
 

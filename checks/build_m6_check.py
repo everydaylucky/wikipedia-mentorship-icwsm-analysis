@@ -26,6 +26,69 @@ CELLS = [
 md("""
 # M6 text features and text labels: checks
 
+## Plain-language guide
+
+**Why the study needs this module.** The study compares newcomers whose first question got a reply from their
+mentor with similar newcomers whose question got no reply. To make the two groups comparable, the propensity score
+model (a model that predicts who gets a reply) needs to know what each question looked like: long or short, polite
+or rude, a real editing question or just "Hello". M6 turns every question into such numbers, called *text
+features*. These features are covariates (control variables) in the propensity score. M6 also describes the first
+reply (length, links to help pages, politeness, and so on); these reply features are the inputs of the
+reply-feature analysis (which kinds of replies go with better outcomes).
+
+**What data it uses and from where.**
+
+* The question text and the conversation that follows it, taken from mentor talk pages (made by M2), and the list
+  of sampled newcomers and their first questions (made by M5).
+* Free text-analysis tools that run on this computer: VADER and TextBlob (they give a sentiment score, that is how
+  positive or negative the words are), ConvoKit (it flags 21 politeness strategies such as "please", "thanks",
+  greetings), spaCy (it finds pronouns like *you*, *I*, *we* and commands like "click here"), textstat (reading
+  level), and mwparserfromhell (it reads Wikipedia markup such as links and templates).
+* Three online services, called once and then stored in a local cache: (1) the DeepSeek language model, which
+  labels each question with five yes/no question types using a written codebook and 120 examples labelled by
+  people; (2) Google's Perspective API, which gives each text a score from 0 to 1 for toxicity, insult, profanity,
+  threat and four more attributes (a *Perspective score*: about how likely readers would see the text as, say,
+  rude); (3) the Qwen text-embedding-v4 model, which turns a text into a list of 1024 numbers (an *embedding*)
+  so that texts with similar meaning get similar lists.
+* The paper version of the data (April 2026) for comparison, and for reusing earlier LLM labels and embeddings
+  when the text is the same.
+
+**What it does, step by step.**
+
+1. Take the first question of every sampled newcomer and turn the wiki markup into plain text.
+2. Count simple things in the question (length, links, templates, signature, web addresses) and score its
+   sentiment and politeness.
+3. Get the five question-type labels, the eight Perspective scores, and the embedding (reuse stored results when
+   the same text was already processed; otherwise ask the service). User names are removed and links replaced by
+   `[LINK]` before a text is sent out. Missing results stay missing; they are never filled with 0.
+4. For each question that got a reply, rebuild the first reply (all comments by the first person who answered,
+   until someone else speaks) and compute 21 reply features, including how similar the reply is to the question
+   (the *cosine similarity* of the two embeddings: 1 = same meaning, 0 = unrelated).
+
+**What the outputs are (this run, final data, cutoff 2026-04-20T14:00Z).**
+
+* `data/interim/m6/question_features.parquet`: one row = one sampled first question (34,985 rows). Columns: the
+  question id, 37 text features, the 5 question-type labels, the 8 Perspective scores, and three yes/no flags
+  saying whether labels, scores and embedding exist.
+* `data/interim/m6/reply_features.parquet`: one row = one question that got a reply with some text (26,877 rows).
+  Columns: the question id and 21 reply features (words, pronoun rates, links, policy and Help links, reply lag in
+  hours, politeness flags, cosine similarity, and others).
+* `emb_q.npy`, `emb_r.npy` (with `emb_q_index.parquet`, `emb_r_index.parquet`): the stored question and reply
+  embeddings, one row per distinct text. `emb_q_sample.npy`: one embedding row per row of question_features
+  (34,985 rows, 1024 numbers each; empty for the 46 questions without an embedding).
+* `coverage.json` and `manifest.json`: counts of what was produced and how the run was done.
+* `results/m6/agreement.csv`: agreement between people and the LLM on the question types (paper Table 3).
+
+**How to read this notebook.**
+
+* Every cell has already been run on the final data and its output is saved below it. Nothing needs to be run.
+* `[OK ]` means a check passed and `[FAIL]` means it did not. Tables that compare a value recomputed by hand with
+  the stored value have a `match` column and end with `all fields match` (good) or `MISMATCH` (bad).
+* An *invariant* is a rule that must hold for every row (for example "a score is between 0 and 1").
+* A *tracer* is one of a few fixed example newcomers that every check notebook follows through the whole
+  pipeline. A *random sample* is a set of rows drawn at random (with a fixed seed, so the same rows come back) so
+  that a reader can look at real cases with their own eyes.
+
 ## 1. Module description
 
 **What M6 does.** `pipeline/m6_text/` (`build_text.py`, `text_features.py`, `services.py`, `cache.py`,
@@ -37,8 +100,9 @@ md("""
 2. **Question types (5 columns).** DeepSeek labels with the paper codebook and 120 human-labelled examples:
    `q_substantive` (Q0), `q_referent` (Q2), `q_appraisal` (Q3), `q_normative` (Q4), `q_own_work` (Q5).
 3. **Perspective scores (8 columns)** and **Qwen embeddings** (text-embedding-v4, 1024 dimensions) of the question
-   text with user names removed and links replaced by `[LINK]`. Paper-version results are reused when the text is
-   the same (or almost the same); missing values are left missing, never filled with 0.
+   text with user names removed and links replaced by `[LINK]`. Paper-version LLM labels and embeddings are reused
+   when the text is the same (or almost the same). Perspective scores are never copied from the paper version
+   (I-59, see 5c): all of them were fetched again. Missing values are left missing, never filled with 0.
 4. **Reply features (21 columns)** of the first replier's comments: words, personal pronoun rates (spaCy
    morphology), imperative sentences (spaCy dependency parse), links from the DiscussionTools HTML (wikilinks,
    policy or guideline pages, Help pages, external links), lag, readability, sentiment, four politeness strategies,
@@ -48,10 +112,14 @@ md("""
 4, through M7), the question-type results and the agreement table (Table 3, I-54), and the reply analyses
 (Tables 6 and 7).
 
-**How to use this notebook.** Run it from top to bottom. Each check prints `[OK ]` or `[FAIL]`. Each comparison of
-a hand recomputation with the stored value prints a table with a `match` column and ends with `all fields match`
-or `MISMATCH in: [...]`. Random rows are drawn with `SEED` in the next cell: change `SEED` and run again to see
-fresh rows. spaCy and ConvoKit run only on the sampled rows, so the notebook stays fast.
+**How to use this notebook.** The saved outputs are enough to read it. To run it again, run it from top to bottom.
+Each check prints `[OK ]` or `[FAIL]`. Each comparison of a hand recomputation with the stored value prints a table
+with a `match` column and ends with `all fields match` or `MISMATCH in: [...]`. Random rows are drawn with `SEED`
+in the next cell: change `SEED` and run again to see fresh rows. spaCy and ConvoKit run only on the sampled rows,
+so the notebook stays fast.
+
+**What this checks.** The next cell loads the M6 tables and the sample from M5 and prints how many rows each has.
+The row counts tell us whether every sampled question got a feature row.
 """),
 code(r'''
 import json, sys, re
@@ -86,6 +154,11 @@ ts = lambda x: pd.to_datetime(x, utc=True, format="ISO8601")         # noqa: E73
 print(f"sampled questions {len(S)} | question feature rows {len(qf)} | reply feature rows {len(rf)}")
 '''),
 md("""
+**What the output shows.** On the final data (cutoff 2026-04-20T14:00Z) there are 34,985 sampled first questions
+and exactly 34,985 question feature rows, so every question is described. There are 26,877 reply feature rows:
+one for each question that got a reply with some text (the treated group, minus 4 replies with no text, see
+section 6).
+
 ### Helpers written for this notebook
 
 * `my_first_reply(turns, q_ts)`: the first turn by anyone who is not the newcomer, at or after the question minute,
@@ -159,6 +232,10 @@ def names_in(rv):
 '''),
 md("""
 ## 2. Files, manifest, coverage, and data dictionaries
+
+**What this checks.** It lists the output files with their size and time, and prints the run settings
+(`manifest.json`) and the counts of what was produced (`coverage.json`). This shows the files exist, come from one
+recent run, and how complete each kind of result is.
 """),
 code(r'''
 for p in sorted(M6.glob("*")):
@@ -170,11 +247,20 @@ cov = json.loads((M6 / "coverage.json").read_text())
 print("coverage.json:", json.dumps(cov))
 '''),
 md("""
+**What the output shows.** All nine files were written in one run that finished on 2026-10-26 (online mode, text
+similarity threshold 0.85 for reusing old results). Coverage: 34,985 questions; LLM labels for all 34,985;
+Perspective scores and question embeddings for 34,939 (46 missing); 26,877 replies, 26,876 reply embeddings, and
+26,858 cosine values. The cache line says 260,609 results were read from the local cache and only 138 were not
+there, so almost nothing was requested again in the last run. The 46 missing questions are explained in section 6.
+
 ### Data dictionary: `question_features.parquet` (one row per sampled first question) and `reply_features.parquet`
 (one row per treated question whose first reply has text)
 
 The `checked in` column names the cell that verifies each column (3 = invariants on all rows, 4 = paper comparison,
 5a to 5f = random samples, 6 = edge cases).
+
+**What this checks.** The next cell prints, for every column of the two tables, what it means in words. The cell
+after it checks that the dictionary and the real tables list the same columns, so no column is left unexplained.
 """),
 code(r'''
 POLITE = {"Please": "contains 'please' inside the sentence", "Please_start": "starts with 'please'",
@@ -240,15 +326,27 @@ normalization) is row i of emb_q_index.parquet / emb_r_index.parquet (columns te
 emb_q_sample.npy has one row per row of question_features.parquet (NaN rows where the embedding is missing). Checked in 3, 5f.
 coverage.json counts questions, labels, scores, embeddings and cosine values. Checked in 3.""")
 '''),
+md("""
+**What the output shows.** Two tables list every column with its meaning and the section that checks it, followed
+by a short note on the embedding files. The next cell checks that these lists are complete.
+"""),
 code(r'''
 print("question_features columns missing from the dictionary:", [c for c in qf.columns if c not in QD], "| extra:", [c for c in QD if c not in qf.columns])
 print("reply_features columns missing from the dictionary:", [c for c in rf.columns if c not in RD], "| extra:", [c for c in RD if c not in rf.columns])
 '''),
 md("""
+**What the output shows.** Both lines print empty lists: no column is missing from the dictionary and the
+dictionary has no extra column. Every one of the 54 question columns and 22 reply columns is described above.
+
 ## 3. Invariants
 
 Several checks recompute a column from the raw data for **every** row: the simple length features, the reply text
 rebuilt from the thread turns (question marks, lists, links), the reply lag, and the word ratio.
+
+**What this checks.** 38 rules that must hold on all rows: one row per question, flags are 0 or 1, scores are in
+their allowed range, counts written by the pipeline equal counts recomputed here in a simpler, independent way,
+and the coverage numbers equal the counts in the tables. If any rule broke, the covariates or reply features used
+in the paper could be wrong for some newcomers.
 """),
 code(r'''
 ck = Checks()
@@ -322,10 +420,22 @@ ck.add("coverage.json counts == counts recomputed from the tables", all(hand_cov
 ck.report()
 '''),
 md("""
+**What the output shows.** All 38 of 38 checks pass. The simple recomputation agrees with the stored value on every
+row for signature, URL, indentation, and Wikipedia and Help links. For three counts a few rows differ: links (7
+rows), templates (44 rows) and the {{unsigned}} flag (1 row), all well under the 0.5% allowed. These are cases
+where the simple regex here is the less accurate method (for example a broken link or a template inside
+`<nowiki>`); they are listed in section 6. No LLM label breaks the codebook rule, and every reply count (question
+marks, lists, links, lag, word ratio) matches the rebuilt reply text on all 26,877 rows.
+
 ## 4. Comparison with the paper version
 
 For the same question (matched by revid): do the paper version and the new version give the same question types,
 and how strongly do the old features correlate with the new ones (which now use standard tools)?
+
+**What this checks.** It matches questions between the paper version (April 2026 data) and this version and asks
+whether they got the same values. "Share equal" is the share of questions with the same 0/1 value; "correlation"
+is a number from -1 to 1 where 1 means the two versions move together perfectly. Large differences would mean the
+paper's covariates changed.
 """),
 code(r'''
 z = np.load(config.EXTERNAL["paper_npz"], allow_pickle=True)
@@ -346,6 +456,13 @@ for c in [str(c) for c in z["Qtype_cols"]] + ["q_link_count", "q_body_word_count
 display(pd.DataFrame(rows))
 '''),
 md("""
+**What the output shows.** 33,201 questions are in both versions (the other 1,784 are first questions that the April
+data did not have). The five question types agree on 99.6% to 99.9% of questions, word count and VADER sentiment
+correlate at 0.99, and the Gratitude and Please flags agree on 99.6% and 97.3%. Two features changed on purpose:
+links (correlation 0.81) and Wikipedia-namespace links (`q_mentions_wp`, correlation 0.27). The low 0.27 is
+expected: the paper version counted the text "WP:" anywhere, while the new version counts real links to Wikipedia
+pages (issue I-05), and both features are rare (mean 0.002 per question).
+
 ## 5. Tracer and random samples: raw text next to every feature
 
 ### 5a. Random questions: raw wikitext, plain text, and all 37 text features
@@ -354,6 +471,10 @@ For each question: the simple features recomputed by `my_question_format` (regex
 TextBlob recomputed by calling the libraries on the plain text, and the 21 ConvoKit politeness strategies
 recomputed by calling `PolitenessStrategies` directly, with the words (markers) that triggered each one. The
 tracer questions from `pipeline/common/tracer.py` that are in the sample are shown first.
+
+**What this checks.** For a few real questions the reader can see the raw text and every feature next to it, and
+each feature is computed again here by calling the tools directly. This shows that the stored numbers really come
+from the text (for example, "Hello" turns on the greeting flag).
 """),
 code(r'''
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -410,11 +531,20 @@ for rv in pick(qf, N_RANDOM, SEED).first_question_revid:
     show_question(int(rv))
 '''),
 md("""
+**What the output shows.** 8 tracer questions and 5 random questions are shown. For all 13, the format features,
+the sentiment scores and the 21 politeness flags recomputed here are identical to the stored values (each block
+ends with `all fields match`; there is no `MISMATCH`). The warning about `pkg_resources` at the top is a harmless
+notice from a library and not an error.
+
 ### 5b. LLM question types: text, labels, and the codebook definition
 
 The labels are judgements, so they cannot be recomputed; the reader compares each text with the one-line codebook
 definition. The full codebook is `services.codebook_text()` (paper `codebook_prompt.md` plus 120 labelled
 examples). The rule "if Q0 = N then Q2 to Q5 are N" is checked on all rows in section 3.
+
+**What this checks.** The first cell prints the five definitions and five random questions with their labels. The
+second cell shows, for each type, five questions labelled Y and five labelled N, so a reader can judge whether the
+LLM follows the definitions.
 """),
 code(r'''
 for c, d in CODEBOOK.items():
@@ -425,6 +555,11 @@ for rv in pick(qf[qf.has_llm], N_RANDOM, SEED).first_question_revid:
     print(f"\n  revid {rv} {oldid(rv)}\n  text: {str(txt.get(rv))[:500]!r}")
     print("  labels:", "  ".join(f"{c}={'Y' if v else 'N'}" for c, v in lab.items()))
 '''),
+md("""
+**What the output shows.** The five random questions get labels that fit the definitions: the three questions about
+writing or disclosing an article are Q0 = Y and Q4 = Y, and "Hello, are you available..." is Q0 = N, so all its
+other labels are N as the rule requires. The next cell shows more examples for each type.
+"""),
 code(r'''
 for c, d in CODEBOOK.items():
     print(f"\n{'=' * 110}\n## {c}: {d}")
@@ -436,18 +571,27 @@ for c, d in CODEBOOK.items():
             print(f"   {c}={name}: {str(txt.get(rv, ''))[:220]!r}")
 '''),
 md("""
+**What the output shows.** The examples fit the definitions well. For instance "Hello, are you available..." is
+Q0 = N (no real editing question), and "I have submitted a draft... how do I disclose my connection" is Q4 = Y
+(about rules) and Q5 = Y (own work already done). Shares labelled Y: Q0 0.810, Q2 0.134, Q3 0.056, Q4 0.181,
+Q5 0.232. Some labels are borderline, which is normal for judgement labels; how often the LLM agrees with people
+is measured in section 7.
+
 ### 5c. Perspective scores: the highest and lowest questions for each attribute
 
 The input to Perspective is the question text with user names removed and links replaced by `[LINK]`. High
 scores should look rude, profane, sexual, and so on; low scores should look harmless. `source` says where the score
-came from: `legacy` = copied from the paper version (`s10_perspective_mentee.csv`, matched by revid and text
-similarity), `api` = fetched again by M6.
+came from: `legacy` = copied from the paper version, `api` = fetched again by M6.
 
-**Known problem (found with this notebook, 2026-10-26).** Several `legacy` scores do not fit their text, for
-example "How to write an essay" (revid 1278478330) has TOXICITY 0.854 and "Hi! Thank you so much!" (revid
-1334684029) has 0.543. Sending these texts to the Perspective API again gives 0.017 and 0.009. Of the 46 legacy
-questions with TOXICITY > 0.5, 30 get a fresh score below 0.3. The paper-version CSV seems to hold scores of other
-texts for part of its rows. Set `RECHECK_ONLINE = True` in the second cell below to repeat the comparison.
+**Earlier problem, now fixed (I-59).** The paper-version Perspective file (`s10_perspective_mentee.csv`) turned
+out to hold scores of other texts for many rows (for example "How to write an essay" had TOXICITY 0.854; a fresh
+score is 0.017). M6 therefore no longer copies any paper-version Perspective score: every score was fetched again
+from the API. The old scores are kept in the cache under a different name only for the record. Set
+`RECHECK_ONLINE = True` in the second cell below to send some texts to the API again and compare.
+
+**What this checks.** For each of the eight attributes it shows the three questions with the highest score and the
+two with the lowest, and where each score came from. If the scores are right, the top texts should clearly be
+rude, sexual, and so on.
 """),
 code(r'''
 import sqlite3
@@ -465,6 +609,18 @@ top = qf.nlargest(200, "q_persp_toxicity").first_question_revid
 print("\nsource of the 200 highest TOXICITY scores:", pd.Series([persp_source(rv) for rv in top]).value_counts().to_dict(),
       "| source of all scores:", pd.Series(list(PSRC.values())).value_counts().to_dict())
 '''),
+md("""
+**What the output shows.** The highest scores go to texts that really are insulting, profane, sexual or
+threatening, and the lowest go to plain, neutral texts, so the scores behave as expected. Every score has source
+`api` (all 33,252 distinct scored texts, and all of the 200 most toxic ones), which confirms that no misaligned
+paper-version score is left. Average scores are very low (toxicity 0.033), as expected for polite newcomer
+questions. FLIRTATION has a much higher average (0.312) and even "How do I correct a factual error?" scores 0.119;
+this attribute is known to give a high baseline to ordinary friendly text, so it is not a sign of an error.
+A few top texts are mild (for example THREAT 0.547 for "I need to hit the studio"), a known limit of the tool.
+
+**What this checks.** The next cell can send texts to the Perspective API again. It is switched off, so it only
+prints a message.
+"""),
 code(r'''
 RECHECK_ONLINE = False   # True: send the texts below to the Perspective API again (needs PERSPECTIVE_API_KEY in .env; about 1 s per text)
 if RECHECK_ONLINE:
@@ -482,6 +638,9 @@ else:
     print("RECHECK_ONLINE is False: no texts were sent to the Perspective API.")
 '''),
 md("""
+**What the output shows.** "RECHECK_ONLINE is False": no text was sent to the API in this run, as intended (the
+notebook makes no online requests).
+
 ### 5d. Random replies: text, pronouns, imperatives, links, and all 21 reply features
 
 For each reply: the thread turns that make up the reply (rebuilt by `my_first_reply`), the spaCy tokens counted as
@@ -489,6 +648,10 @@ For each reply: the thread turns that make up the reply (rebuilt by `my_first_re
 redirects, and the policy and Help decisions (from the cached API answers, `wikimeta.resolve_titles` and
 `policy_status`). Then every reply feature is recomputed and compared. The cosine similarity is recomputed from the
 embedding files (see 5f for the method).
+
+**What this checks.** The reply features are the inputs of the reply-feature analysis in the paper. For five
+random replies the reader sees the reply text, which words counted as *you* / *I* / *we*, which sentences counted
+as commands (imperatives), and where each link points, and all 21 features are computed again and compared.
 """),
 code(r'''
 from pipeline.common.api import MediaWikiClient
@@ -564,15 +727,31 @@ for rv in pick(rf, N_RANDOM, SEED).first_question_revid:
     show_reply(int(rv))
 '''),
 md("""
+**What the output shows.** The first line says all 8,017 link titles found in replies were resolved from stored
+answers, and 55 of their targets are policy or guideline pages. All five replies end with `all fields match`. The
+examples also show that the rules are simple and literal: in "You're referring to an infobox; see that page for
+more information." the sentence is counted as one imperative because of "see", and a link to
+`MOS:INFOBOX` is followed to its real page (a Manual of Style page, which is not tagged as a policy, so it does not
+count as a policy link).
+
 ### 5e. Replies with policy, Help, or many links
 
 Random replies with at least one policy or guideline link, so the reader can see the link decisions on rows where
 they matter.
+
+**What this checks.** The same comparison as 5d, on two replies that do link to a policy or guideline, since
+random replies rarely do (the average reply has 0.19 policy links).
 """),
 code(r'''
 for rv in pick(rf[rf.r_n_policy > 0], 2, SEED).first_question_revid:
     show_reply(int(rv))
 '''),
+md("""
+**What the output shows.** Both replies end with `all fields match`. In the first one, four links are listed:
+`Wikipedia:IUP` is followed to "Wikipedia:Image use policy" and counted as a policy link, while
+"Wikipedia:Files for upload" is a normal project page and is not. Links to Wikimedia Commons (`C:`) have no target
+namespace here and are counted as links but not as policy or Help links, which is correct.
+"""),
 md("""
 ### 5f. Cosine similarity and embedding files
 
@@ -581,6 +760,9 @@ names removed and links replaced), the reply text likewise (`emb_text_from_plain
 row in `emb_q.npy` / `emb_r.npy` through the index files. The cosine is computed with numpy and compared to 6 decimals
 (the vectors are stored as float32, so later digits depend on the order of the arithmetic). We also
 check that the question vector equals the row of `emb_q_sample.npy` that belongs to the same question.
+
+**What this checks.** That each stored cosine similarity really is computed from the right question embedding and
+the right reply embedding, and that the per-question embedding file lines up with the question table.
 """),
 code(r'''
 pos = {rv: i for i, rv in enumerate(qf.first_question_revid)}
@@ -594,7 +776,18 @@ for rv in pick(rf[rf.r_qr_cosine_sim.notna()], N_RANDOM, SEED).first_question_re
     compare({"r_qr_cosine_sim": my_cosine(rv, REP[rv][1]), "emb_q row == emb_q_sample row": True},
             {"r_qr_cosine_sim": round(float(RI.at[rv, "r_qr_cosine_sim"]), 6), "emb_q row == emb_q_sample row": same})
 '''),
-md("## 6. Edge-case lists"),
+md("""
+**What the output shows.** For all five replies the recomputed cosine equals the stored one to 6 decimals, and the
+question vector equals its row in `emb_q_sample.npy`. The values (0.39 to 0.73) look sensible: a short, generic
+pair like "Hello world" / "Welcome to Wikipedia!" is less similar (0.39) than a reply that answers the question
+directly (0.73).
+
+## 6. Edge-case lists
+
+**What this checks.** It lists the unusual rows: questions without labels, scores or embeddings, replies without a
+cosine value, replies with no text, label rule breaks, rows where the simple regex and the wiki parser disagree,
+and the longest and shortest replies. These are the rows most likely to hide a bug.
+"""),
 code(r'''
 for name, flag in (("LLM labels", "has_llm"), ("Perspective scores", "has_persp"), ("question embedding", "has_emb_q")):
     miss = qf[~qf[flag]]
@@ -630,7 +823,24 @@ print("Shortest replies (words):")
 for rv in rf.nsmallest(3, "r_words").first_question_revid:
     print(f"   {rv}: r_words={RI.at[rv, 'r_words']} text {REP[rv][1][:100]!r}")
 '''),
-md("## 7. Distributions: agreement (paper Table 3; I-54), label shares, cosine similarity"),
+md("""
+**What the output shows.** No question lacks LLM labels. The same 46 questions lack both Perspective scores and an
+embedding; their text is only a user name or signature (for example "--Saud9900"), so after names are removed
+nothing is left to send. They stay missing, not 0. 19 replies have no cosine value: 18 because the question
+embedding is missing and 1 because the reply embedding is missing. 4 treated questions have a first reply with
+empty text (the comment has no words left after cleaning), so they have no reply row. The regex disagreements
+are cases where the wiki parser is right (a link broken over two lines, a template inside `<small>` or
+`<nowiki>`). The shortest replies have 0 words because they are only punctuation such as "?"; the longest has
+1,121 words. Note that `q_has_unsigned` is 0 for every question (see the summary in section 7), so this feature
+carries no information; it is harmless as a covariate but adds nothing.
+"""),
+md("""
+## 7. Distributions: agreement (paper Table 3; I-54), label shares, cosine similarity
+
+**What this checks.** How often the LLM labels agree with two human labellers and with the agreed (gold) labels,
+measured with Cohen's kappa (1 = perfect agreement, 0 = no better than chance). Then the share of questions with
+each label, and summaries (mean, spread, minimum, maximum) of the question and reply features.
+"""),
 code(r'''
 ag = pd.read_csv(config.RESULTS / "m6" / "agreement.csv")
 display(ag[ag.set.str.startswith("test")].pivot(index="pair", columns="dim", values="kappa").round(3))
@@ -646,13 +856,34 @@ print("\nhighest and lowest question-reply cosine similarity:")
 for rv in list(rf.nlargest(3, "r_qr_cosine_sim").first_question_revid) + list(rf.nsmallest(3, "r_qr_cosine_sim").first_question_revid):
     print(f"   {RT.r_qr_cosine_sim[rv]:.3f}  Q: {str(txt.get(rv, ''))[:80]!r}  R: {REP[rv][1][:80]!r}")
 '''),
-md("## 8. Summary (results/m6_report.json)"),
+md("""
+**What the output shows.** The first table is the kappa on the test set only (items 121 to 241, never used while
+writing the prompt), so it is lower than the full-set numbers in paper Table 3 (human-human 0.872 to 0.950 on the
+full set, in `results/m6/agreement.csv`). On the test set, human-human kappa is 0.77 to 0.91 and LLM against gold
+is 0.62 (Q4) to 0.92 (Q5). The second table: labelling the 241 items again with the same model and prompt gives the
+same label as the paper version 93% to 98% of the time. In the reply summary, three things look odd but are fine:
+the smallest reply lag is -0.01 hours because reply times are known only to the minute (19 replies posted in the
+same minute as the question); the highest reading grade (185.4) comes from a very long reply with no sentence
+breaks; and 7 replies have cosine above 0.99 because the reply text is the same as the question (for example
+"Hi" / "Hi", or a reply that repeats the question word for word). These few rows do not affect the averages.
+"""),
+md("""
+## 8. Summary (results/m6_report.json)
+
+**What this checks.** It saves the coverage counts to `results/m6_report.json` and prints how many invariants
+passed.
+"""),
 code(r'''
 cov = json.loads((M6 / "coverage.json").read_text())
 (config.RESULTS / "m6_report.json").write_text(json.dumps(cov, indent=1))
 print(json.dumps(cov, indent=1))
 print(f"invariants: {sum(ok for _, ok in ck.items)} / {len(ck.items)} passed")
 '''),
+md("""
+**What the output shows.** On the final data (cutoff 2026-04-20T14:00Z): 34,985 questions, all with LLM labels;
+34,939 with Perspective scores and embeddings; 26,877 replies with 26,858 cosine values; 38 of 38 invariants
+passed. M6 is complete and consistent, and its outputs can be used by M7.
+"""),
 ]
 
 

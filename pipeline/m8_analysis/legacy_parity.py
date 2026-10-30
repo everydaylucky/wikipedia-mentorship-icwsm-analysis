@@ -103,6 +103,16 @@ DIMS_S14 = [
 DIMS_A2 = DIMS_S13[:5]
 
 
+def _rows(D: dict, key: str) -> np.ndarray | None:
+    """Rows with full follow-up for outcome oc_{key} (I-10), or None when every row is kept.
+
+    run_analysis.add_followup_masks stores these as keep__{key}. The paper-version npz has none, so the parity run
+    keeps every row, exactly as the paper version did.
+    """
+    m = D.get(f"keep__{key}")
+    return None if m is None or m.all() else m
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # Reading
 # ════════════════════════════════════════════════════════════════════════════
@@ -230,13 +240,17 @@ def run_s13(D: dict) -> dict[str, pd.DataFrame]:
     Xs = StandardScaler().fit_transform(X)
     rows, mrows = [], []
     for nm, key in DIMS_S13:
-        y = D[f"oc_{key}"].astype(float)
-        att = est.att_stratified(y, d, st).att
-        dr = est.dr_stratified_legacy(y, d, st, Xs)
-        lo, hi = _boot(y, d, st, mentees, rng)
-        mlo, mhi = _boot(y, d, st, mentors, rng)
-        sd = y[d == 0].std()
-        rows.append({"Outcome": nm, "Naive": est.naive_diff(y, d), "ATT": att, "DR": dr, "CI_lo": lo, "CI_hi": hi,
+        y, dk, sk, Xk, mk, rk = D[f"oc_{key}"].astype(float), d, st, Xs, mentees, mentors
+        m = _rows(D, key)
+        if m is not None:
+            y, dk, sk, Xk = y[m], d[m], st[m], Xs[m]
+            mk, rk = est.ClusterIndex(D["mentee_ids"][m]), est.ClusterIndex(D["mentor_ids"][m])
+        att = est.att_stratified(y, dk, sk).att
+        dr = est.dr_stratified_legacy(y, dk, sk, Xk)
+        lo, hi = _boot(y, dk, sk, mk, rng)
+        mlo, mhi = _boot(y, dk, sk, rk, rng)
+        sd = y[dk == 0].std()
+        rows.append({"Outcome": nm, "N": len(y), "Naive": est.naive_diff(y, dk), "ATT": att, "DR": dr, "CI_lo": lo, "CI_hi": hi,
                      "Cohen_d": att / sd if sd > 0 else 0.0, "d_CI_lo": lo / sd, "d_CI_hi": hi / sd,
                      "Sig": "*" if est.is_significant(lo, hi) else "",
                      "variant": "primary" if key == "primary" else "supplementary"})
@@ -251,11 +265,14 @@ def run_s13(D: dict) -> dict[str, pd.DataFrame]:
     # C1 number of strata
     rows = []
     for nm, key in DIMS_S13:
-        y = D[f"oc_{key}"].astype(float)
+        m = _rows(D, key)
+        m = slice(None) if m is None else m
+        y, dk = D[f"oc_{key}"].astype(float)[m], d[m]
+        ck = mentees if isinstance(m, slice) else est.ClusterIndex(D["mentee_ids"][m])
         for K in (5, 10, 20):
-            stk = est.make_strata(ps.e_hat, K)
-            att = est.att_stratified(y, d, stk).att
-            lo, hi = _boot(y, d, stk, mentees, rng)
+            stk = est.make_strata(ps.e_hat, K)[m]
+            att = est.att_stratified(y, dk, stk).att
+            lo, hi = _boot(y, dk, stk, ck, rng)
             rows.append({"Outcome": nm, "Strata": K, "ATT": att, "CI_lo": lo, "CI_hi": hi,
                          "Sig": "*" if est.is_significant(lo, hi) else ""})
     out["C1_strata_sensitivity"] = pd.DataFrame(rows)
@@ -278,12 +295,16 @@ def run_s13(D: dict) -> dict[str, pd.DataFrame]:
                      "Sig": "*" if est.is_significant(lo, hi) else ""})
     out["C3_ps_trimming"] = pd.DataFrame(rows)
 
-    # C4 windows (the paper-version npz did not save a "full follow-up" flag, so all observations are used, as in the paper version)
+    # C4 windows (the paper-version npz did not save a "full follow-up" flag, so the parity run uses all observations,
+    # as in the paper version; run_analysis keeps only people whose window ends before the cutoff)
     rows = []
     for w in config.OUTCOME_WINDOWS_DAYS:
-        y = D[f"oc_mainspace_{w}d"].astype(float)
-        att = est.att_stratified(y, d, st).att
-        lo, hi = _boot(y, d, st, mentees, rng)
+        m = _rows(D, f"mainspace_{w}d")
+        m = slice(None) if m is None else m
+        y = D[f"oc_mainspace_{w}d"].astype(float)[m]
+        ck = mentees if isinstance(m, slice) else est.ClusterIndex(D["mentee_ids"][m])
+        att = est.att_stratified(y, d[m], st[m]).att
+        lo, hi = _boot(y, d[m], st[m], ck, rng)
         rows.append({"window": w, "N": len(y), "ATT": att, "CI_lo": lo, "CI_hi": hi,
                      "Sig": "*" if est.is_significant(lo, hi) else ""})
     out["C4_window_sensitivity"] = pd.DataFrame(rows)
@@ -306,10 +327,13 @@ def run_s13(D: dict) -> dict[str, pd.DataFrame]:
              "CI_hi": out["B_main_results"].iloc[0]["CI_hi"]}]
     for key, label in (("median", "Median lag"), ("p25", "25th pctl lag"), ("p75", "75th pctl lag"),
                        ("zero", "Zero lag (immediate)"), ("multi", "Multi-draw avg")):
-        y = D[f"oc_primary__{key}"].astype(float)
-        att = est.att_stratified(y, d, st).att
-        lo, hi = _boot(y, d, st, mentees, rng)
-        rows.append({"Strategy": label, "ATT": att, "CI_lo": lo, "CI_hi": hi})
+        m = _rows(D, f"primary__{key}")
+        m = slice(None) if m is None else m
+        y = D[f"oc_primary__{key}"].astype(float)[m]
+        ck = mentees if isinstance(m, slice) else est.ClusterIndex(D["mentee_ids"][m])
+        att = est.att_stratified(y, d[m], st[m]).att
+        lo, hi = _boot(y, d[m], st[m], ck, rng)
+        rows.append({"Strategy": label, "N": len(y), "ATT": att, "CI_lo": lo, "CI_hi": hi})
     c7 = pd.DataFrame(rows)
     c7["Sig"] = ["*" if est.is_significant(a, b) else "" for a, b in zip(c7.CI_lo, c7.CI_hi)]
     out["C7_pseudo_time"] = c7
@@ -403,12 +427,15 @@ def run_s14(D: dict) -> dict[str, pd.DataFrame]:
                      "T_pct": round(nt / len(idx) * 100, 1), "AUC": round(ps.auc, 4),
                      "K": int(st.max() + 1), "SMD_bad": n_bad})
         for nm, key in DIMS_S14:
-            y = D[f"oc_{key}"][idx].astype(float)
-            att = est.att_stratified(y, d, st).att
-            lo, hi = _boot(y, d, st, cl, rng)
-            sd = y[d == 0].std()
-            out_rows.append({"Subgroup": name, "N": len(idx), "T": nt, "C": nc, "Outcome": nm,
-                             "Ctrl_mean": y[d == 0].mean(), "Treat_mean": y[d == 1].mean(),
+            m = _rows(D, key)
+            m = slice(None) if m is None else m[idx]
+            y, dk, sk = D[f"oc_{key}"][idx].astype(float)[m], d[m], st[m]
+            ck = cl if isinstance(m, slice) else est.ClusterIndex(D["mentee_ids"][idx][m])
+            att = est.att_stratified(y, dk, sk).att
+            lo, hi = _boot(y, dk, sk, ck, rng)
+            sd = y[dk == 0].std()
+            out_rows.append({"Subgroup": name, "N": len(idx), "T": nt, "C": nc, "Outcome": nm, "N_outcome": len(y),
+                             "Ctrl_mean": y[dk == 0].mean(), "Treat_mean": y[dk == 1].mean(),
                              "ATT": att, "CI_lo": lo, "CI_hi": hi, "Cohen_d": att / sd if sd > 0 else 0.0,
                              "Sig": "*" if est.is_significant(lo, hi) else ""})
         log.info("[s14] %-20s N=%d K=%d ATT(primary)=%+.4f", name, len(idx), K, out_rows[-6]["ATT"])
@@ -422,14 +449,17 @@ def run_s14(D: dict) -> dict[str, pd.DataFrame]:
         cl = est.ClusterIndex(D["mentee_ids"][idx])
         for nm, key in DIMS_S14:
             dv_label = {"1+_mainspace_14d": "primary"}.get(nm, nm)
-            y = D[f"oc_{key}"][idx].astype(float)
+            m = _rows(D, key)
+            m = slice(None) if m is None else m[idx]
+            y = D[f"oc_{key}"][idx].astype(float)[m]
+            ck = cl if isinstance(m, slice) else est.ClusterIndex(D["mentee_ids"][idx][m])
             for K in config.SUBGROUP_STRATA_SENSITIVITY:
                 if nc < K * 15:
                     continue
                 ps = est.fit_propensity(Xsub[idx], d)
                 st = est.make_strata(ps.e_hat, K)
-                att = est.att_stratified(y, d, st).att
-                lo, hi = _boot(y, d, st, cl, rng, B=200)
+                att = est.att_stratified(y, d[m], st[m]).att
+                lo, hi = _boot(y, d[m], st[m], ck, rng, B=200)
                 sens.append({"Subgroup": name, "DV": dv_label, "K": K, "ATT": att, "CI_lo": lo, "CI_hi": hi,
                              "Sig": "*" if est.is_significant(lo, hi) else ""})
     return {"subgroup_att": pd.DataFrame(out_rows), "subgroup_diagnostics": pd.DataFrame(diag),
@@ -475,9 +505,15 @@ def run_a2(D: dict) -> dict[str, pd.DataFrame]:
     tasks, meta = [], []
     for mname, mv, mtype in mods:
         for nm, key in DIMS_A2:
-            tasks.append((D[f"oc_{key}"].astype(float), d, mv, stf, cl, rng.get_state(), config.N_BOOT))
+            m = _rows(D, key)
+            if m is None:
+                y, dk, mk, sk, ck = D[f"oc_{key}"].astype(float), d, mv, stf, cl
+            else:
+                y, dk, mk, sk = D[f"oc_{key}"].astype(float)[m], d[m], mv[m], stf[m]
+                ck = est.ClusterIndex(D["mentee_ids"][m])
+            tasks.append((y, dk, mk, sk, ck, rng.get_state(), config.N_BOOT))
             meta.append((mname, mtype, nm))
-            est.advance_rng(rng, cl, config.N_BOOT)
+            est.advance_rng(rng, ck, config.N_BOOT)
     if config.N_JOBS > 1:
         from concurrent.futures import ProcessPoolExecutor
         with ProcessPoolExecutor(config.N_JOBS) as ex:

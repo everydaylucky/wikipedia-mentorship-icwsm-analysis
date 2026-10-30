@@ -4,7 +4,9 @@ run_all.py: run all stages in order
 Module: main controller (CODE_PLAN.md section 8)
 
 1. What it does
-    Calls the offline script of each module in order, from M1 to M9. Before each
+    Calls the offline script of each module in order, from M1 to M9 (in M8: the main analysis, then the
+    camera-ready analyses: later periods, descriptive analyses, edit quality, full bootstrap; in M9: the
+    figures, then the number check). Before each
     stage starts, it checks the upstream manifest. After each stage ends, it
     prints a summary. If any step fails, it stops at once and says which stage
     failed.
@@ -48,6 +50,11 @@ STAGES: list[tuple[str, str, str]] = [
     ("m6", "pipeline.m6_text.build_text", "Text features"),
     ("m7", "pipeline.m7_dataset.build_dataset", "PSM dataset"),
     ("m8", "pipeline.m8_analysis.run_analysis", "Analysis"),
+    ("m8_followup", "pipeline.m8_analysis.followup", "Later periods"),
+    ("m8_descriptive", "pipeline.m8_analysis.descriptive", "Descriptive"),
+    ("m8_quality", "pipeline.m8_analysis.quality", "Edit quality"),
+    ("m8_full_bootstrap", "pipeline.m8_analysis.full_bootstrap", "Full bootstrap"),
+    ("m9_figures", "pipeline.m9_paper.figures", "Paper figures"),
     ("m9", "pipeline.m9_paper.check_numbers", "Paper number check"),
 ]
 LEGACY_STAGES: list[tuple[str, str, str]] = [
@@ -87,11 +94,11 @@ def stage_status(name: str, module_path: str) -> dict[str, str]:
 
 def print_status(stages: list[tuple[str, str, str]]) -> None:
     """Print the progress table, plus the status of the common-layer tests and the raw-data registry."""
-    print(f"  {'Stage':10s}{'Content':22s}{'Code':6s}{'Run':18s}{'Test':6s}{'Check':6s}{'Issues':>8s}")
-    print("  " + "-" * 76)
+    print(f"  {'Stage':19s}{'Content':29s}{'Code':6s}{'Run':18s}{'Test':6s}{'Check':6s}{'Issues':>8s}")
+    print("  " + "-" * 92)
     for n, mp, d in stages:
         s = stage_status(n, mp)
-        print(f"  {n:10s}{d:22s}{s['code']:6s}{s['run']:18s}{s['test']:6s}{s['check']:6s}{s['issues']:>8s}")
+        print(f"  {n:19s}{d:29s}{s['code']:6s}{s['run']:18s}{s['test']:6s}{s['check']:6s}{s['issues']:>8s}")
     common_ok = (config.ROOT / "tests" / "test_common.py").exists()
     sources = config.RAW / "SOURCES.yaml"
     print("\n  Common layer:", "done (pytest tests/test_common.py)" if common_ok else "missing")

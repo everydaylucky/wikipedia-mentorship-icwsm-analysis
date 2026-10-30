@@ -6,7 +6,9 @@ Rules: PLAN M8.1 to M8.9. Issues: I-10, I-11, I-19, I-24, I-26, I-35, I-36
 
 1. What it does
     1. Reads the npz in the paper's layout exported by M7 (psm_dataset_legacy_layout.npz) and keeps the main
-       analysis sample (in_sample).
+       analysis sample: in_sample and a full 14-day follow-up (analysis_sample, I-10). Each outcome then uses only
+       people whose own window ends before the cutoff (add_followup_masks): active_days_30d needs 30 days, the
+       window table needs w days, and the control group's fixed-lag pseudo start times move the window start.
     2. Runs the code in legacy_parity, which matches the paper version cell by cell:
         run_s13: propensity score, stratification, balance (both the paper's definition and the ATT definition), ablation,
                  main results (newcomer bootstrap and mentor bootstrap), number of strata, 48-hour definition,
@@ -19,11 +21,12 @@ Rules: PLAN M8.1 to M8.9. Issues: I-10, I-11, I-19, I-24, I-26, I-35, I-36
     3. Robustness. For every setting we re-estimate the propensity score, re-stratify, and run 500 bootstrap draws
        clustered by newcomer:
         - the sample without the D10 restriction (R2.5);
-        - treatment counts only replies from the assigned mentor (R5.3);
+        - treatment counts only replies from the assigned mentor (R5.3): assigned mentor replied vs no reply at all,
+          with newcomers answered only by other editors left out and treated newcomers measured from the assigned
+          mentor's first reply (add_mentor_outcome); mentor_reply_versions() also reports the simpler versions;
         - drop people fetched late (late_fetch, M3);
         - only questions asked at least 30 days before the cutoff (I-11: questions near the cutoff did not yet have time to get a reply);
-        - only people with full follow-up (oc_eligible_14d, I-10); the window sensitivity also uses only people
-          with full follow-up for that window;
+        - also keep people without a full 14-day follow-up (the main sample before I-10, for comparison);
         - only people whose LLM labels, Perspective scores and embedding are all present (the subsample with no imputed values);
         - only people who are also in the paper sample (in_paper), for a direct comparison with the paper.
 
@@ -49,6 +52,7 @@ import time
 
 import numpy as np
 import pandas as pd
+import pyarrow.dataset as ds
 from sklearn.preprocessing import StandardScaler
 
 import config
@@ -57,6 +61,7 @@ from pipeline.common.runlog import base_parser, setup_logging
 from pipeline.m8_analysis import estimators as est
 from pipeline.m8_analysis import legacy_parity as lp
 from pipeline.m8_analysis import regression as reg
+from pipeline.m5_sample.outcomes import build_outcomes, edit_arrays
 
 OUT = config.RESULTS / "m8"
 
@@ -70,6 +75,69 @@ def subset(D: dict, mask: np.ndarray) -> dict:
     """Take a subset of rows (applies to every array whose first dimension equals the sample size)."""
     n = len(D["y_treat"])
     return {k: (v[mask] if isinstance(v, np.ndarray) and v.ndim >= 1 and len(v) == n else v) for k, v in D.items()}
+
+
+#: Window length (days) of each outcome used in the M8 tables; every other one is a 14-day window.
+WINDOW_DAYS = {"active_days_30d": 30, **{f"mainspace_{w}d": w for w in config.OUTCOME_WINDOWS_DAYS}}
+
+
+def add_followup_masks(D: dict) -> dict:
+    """Add keep__{key}: the window of outcome oc_{key} ends before the cutoff (I-10).
+
+    The main start time uses eligible_{w}d from M5. For the fixed-lag versions (oc_{key}__median and so on) a
+    control's window starts at q_ts + that lag, so the flag is recomputed; the treated group keeps the main flag.
+    The multi-draw version averages 20 draws and keeps the main flag.
+    """
+    lags = dict(zip(("median", "p25", "p75", "zero"), D["pseudo_lag_info"][:4]))
+    q = pd.to_datetime(pd.Series(D["q_ts"]), utc=True)
+    cutoff = pd.Timestamp(config.DATA_CUTOFF)
+    treated = D["y_treat"] == 1
+    keys = {k for _, k in lp.DIMS_S13 + lp.DIMS_S14} | {f"mainspace_{w}d" for w in config.OUTCOME_WINDOWS_DAYS}
+    for key in keys:
+        w = WINDOW_DAYS.get(key, 14)
+        main = D[f"eligible_{w}d"] == 1
+        D[f"keep__{key}"] = main
+        D[f"keep__{key}__multi"] = main
+        for name, lag in lags.items():
+            ok = (q + pd.Timedelta(days=float(lag) + w) <= cutoff).to_numpy()
+            D[f"keep__{key}__{name}"] = (treated & main) | (~treated & ok)
+    return D
+
+
+def add_mentor_outcome(D: dict) -> dict:
+    """Outcomes for the assigned-mentor treatment (R5.3), added to D.
+
+    others_only: someone replied, but never the assigned mentor (dropped from this comparison).
+    oc_primary__mentor: the primary outcome with the window starting at the assigned mentor's first reply. It differs
+        from oc_primary only for newcomers whose first reply came from someone else; for them it is recomputed from
+        the M3 edits (the primary outcome does not use revert information).
+    keep__primary__mentor: the 14-day window from that start ends before the cutoff.
+    """
+    s = pd.read_parquet(config.INTERIM / "m5" / "sample.parquet",
+                        columns=["first_question_revid", "mentee_uid", "q_ts", "first_reply_ts", "mentor_first_reply_ts"])
+    s = s.drop_duplicates("first_question_revid").set_index("first_question_revid").loc[D["cid_order"].astype(np.int64)]
+    first = pd.to_datetime(s.first_reply_ts, utc=True)
+    mentor = pd.to_datetime(s.mentor_first_reply_ts, utc=True)
+    D["others_only"] = (first.notna() & mentor.isna()).to_numpy()
+    later = (mentor.notna() & (mentor > first)).to_numpy()
+    y = D["oc_primary"].astype(float).copy()
+    uids = s.mentee_uid.astype(np.int64).to_numpy()
+    e = ds.dataset(config.INTERIM / "m3" / "mentee_edits").to_table(
+        columns=["uid", "revid", "timestamp", "ns", "tags"], filter=ds.field("uid").isin(list(uids[later]))).to_pandas()
+    e["timestamp"] = pd.to_datetime(e.timestamp, utc=True).dt.tz_localize(None)
+    groups, empty = dict(tuple(e.groupby("uid"))), e.iloc[0:0]
+    for i in np.where(later)[0]:
+        y[i] = build_outcomes(edit_arrays(groups.get(uids[i], empty)), mentor.iloc[i].to_pydatetime())["primary"]
+    D["oc_primary__mentor"] = y
+    ok = (mentor + pd.Timedelta(days=14) <= pd.Timestamp(config.DATA_CUTOFF)).to_numpy()
+    D["keep__primary__mentor"] = np.where(later, ok, D["keep__primary"])
+    return D
+
+
+def analysis_sample(Dall: dict | None = None) -> dict:
+    """The main analysis sample: in_sample with a full 14-day follow-up, with the per-outcome masks added."""
+    Dall = add_followup_masks(load() if Dall is None else Dall)
+    return subset(Dall, Dall["in_sample"] & Dall["keep__primary"])
 
 
 def covariates(D: dict) -> np.ndarray:
@@ -93,17 +161,19 @@ def psm_att(D: dict, y: np.ndarray, d: np.ndarray, rng, label: str) -> dict:
 def robustness(Dall: dict, log) -> pd.DataFrame:
     """The settings in section 1, item 3 (main outcome oc_primary)."""
     rng = np.random.RandomState(config.SEED)
-    main = Dall["in_sample"]
+    full14 = Dall["keep__primary"]
+    main = Dall["in_sample"] & full14
     cutoff30 = (pd.Timestamp(config.DATA_CUTOFF) - pd.Timedelta(days=30)).isoformat()
     q_ts = pd.to_datetime(pd.Series(Dall["q_ts"]), utc=True)
     specs = [
         ("Main (D10 sample)", main, "y_treat", "oc_primary"),
-        ("No D10 restriction (R2.5)", Dall["in_sample_unrestricted"], "y_treat", "oc_primary"),
-        ("Treatment = assigned mentor replied", main, "y_treat_mentor", "oc_primary"),
+        ("No D10 restriction (R2.5)", Dall["in_sample_unrestricted"] & full14, "y_treat", "oc_primary"),
+        ("Treatment = assigned mentor replied (vs no reply)",
+         Dall["in_sample"] & Dall["keep__primary__mentor"] & ~Dall["others_only"], "y_treat_mentor", "oc_primary__mentor"),
         ("Exclude late-fetched askers (M3)", main & ~Dall["late_fetch"], "y_treat", "oc_primary"),
         ("Questions ≥ 30 days before the cutoff (I-11)", main & (q_ts < pd.Timestamp(cutoff30)).to_numpy(), "y_treat",
          "oc_primary"),
-        ("Full 14-day follow-up only (I-10)", main & (Dall["eligible_14d"] == 1), "y_treat", "oc_primary"),
+        ("Also people without a full 14-day follow-up (before I-10)", Dall["in_sample"], "y_treat", "oc_primary"),
         ("Complete text annotations (no imputation)", main & Dall["text_complete"], "y_treat", "oc_primary"),
         ("Askers also in the paper sample", main & Dall["in_paper"], "y_treat", "oc_primary"),
     ]
@@ -112,6 +182,26 @@ def robustness(Dall: dict, log) -> pd.DataFrame:
         D = subset(Dall, m)
         r = psm_att(D, D[ykey].astype(float), D[dkey].astype(float), rng, label)
         log.info("[robust] %-48s N=%6d ATT=%+.4f [%+.4f, %+.4f]", label, r["N"], r["ATT"], r["CI_lo"], r["CI_hi"])
+        rows.append(r)
+    return pd.DataFrame(rows)
+
+
+def mentor_reply_versions(Dall: dict, log) -> pd.DataFrame:
+    """Four ways to compare by who replied (primary outcome). Groups of treated newcomers: the assigned mentor replied
+    first; someone else replied first and the mentor later; only others replied (others_only). Controls: no reply."""
+    rng = np.random.RandomState(config.SEED)
+    full14 = Dall["in_sample"] & Dall["keep__primary"]
+    specs = [("Anyone replied vs no reply (main)", full14, "y_treat", "oc_primary"),
+             ("Assigned mentor replied vs no reply or only others", full14, "y_treat_mentor", "oc_primary"),
+             ("Assigned mentor replied vs no reply (only others dropped)", full14 & ~Dall["others_only"], "y_treat_mentor",
+              "oc_primary"),
+             ("Same, measured from the assigned mentor's first reply",
+              Dall["in_sample"] & Dall["keep__primary__mentor"] & ~Dall["others_only"], "y_treat_mentor", "oc_primary__mentor")]
+    rows = []
+    for label, m, dkey, ykey in specs:
+        D = subset(Dall, m)
+        r = psm_att(D, D[ykey].astype(float), D[dkey].astype(float), rng, label)
+        log.info("[mentor] %-58s N=%6d ATT=%+.4f [%+.4f, %+.4f]", label, r["N"], r["ATT"], r["CI_lo"], r["CI_hi"])
         rows.append(r)
     return pd.DataFrame(rows)
 
@@ -209,14 +299,15 @@ def main(argv: list[str] | None = None) -> None:
     t0 = time.time()
     check_upstream("m8", ["m7"])
     OUT.mkdir(parents=True, exist_ok=True)
-    Dall = load()
-    D = subset(Dall, Dall["in_sample"])
+    Dall = add_mentor_outcome(add_followup_masks(load()))
+    D = analysis_sample(Dall)
     out: dict[str, pd.DataFrame] = {}
     out.update(lp.run_s13(D))
     out.update(lp.run_s14(D))
     out.update(lp.run_a2(D))
     out["robustness"] = robustness(Dall, log)
-    out["window_followup_complete"] = windows_followup(D, log)
+    out["mentor_reply_versions"] = mentor_reply_versions(Dall, log)
+    out["window_followup_complete"] = windows_followup(subset(Dall, Dall["in_sample"]), log)
     rf = pd.read_parquet(config.INTERIM / "m6" / "reply_features.parquet")
     out.update(reply_association(D, rf, log))
     for k, v in out.items():

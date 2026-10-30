@@ -18,7 +18,11 @@ Rules: DATA_PROCESSING R7.2 (variables measured before the question use only rec
          use an undo or revert revision whose edit summary mentions r (it carries the mw-undo, mw-rollback or
          mw-manual-revert tag, and its summary contains the revision ID of r);
        - if the page was deleted or the revision was hidden: record page_deleted; the revert time is unknown.
-    3. build(): writes a table with the revert time of every candidate edit, for use in M7:
+    3. outcome_candidates() (phase "outcomes", added 2026-10-26 for the 48-hour revert rule): every edit with the
+       mw-reverted tag made by a main-sample newcomer between their first question and 30 days after their
+       outcome start time (M5 anchor). The outcome "reverted within 48 hours of the edit" needs the revert time of
+       each of these edits, wherever it lies.
+    4. build(): writes a table with the revert time of every candidate edit, for use in M7:
        outcome variables count only reverts that happened before the cutoff time; covariates measured before the
        question count only reverts that happened before the question.
 
@@ -51,6 +55,7 @@ Rules: DATA_PROCESSING R7.2 (variables measured before the question use only rec
 7. How to run
     python -m pipeline.m3_activity.revert_times --online --phase sample   # first, measure the lag distribution
     python -m pipeline.m3_activity.revert_times --online --phase all --window-days N
+    python -m pipeline.m3_activity.revert_times --online --phase outcomes   # after M5: edits in the outcome windows
     python -m pipeline.m3_activity.revert_times --phase build
 
 8. How to check
@@ -94,6 +99,22 @@ def candidates(window_days: float | None) -> pd.DataFrame:
     near_q = (r.ts < r.first_q) & (r.ts >= r.first_q - w)
     near_c = r.ts >= config.DATA_CUTOFF - w
     return r[near_q | near_c]
+
+
+def outcome_candidates(days: float = 30) -> pd.DataFrame:
+    """Edits with the mw-reverted tag made by main-sample newcomers after their first question and at most `days`
+    days after their outcome start time (M5 sample.parquet, column anchor)."""
+    s = pd.read_parquet(config.INTERIM / "m5" / "sample.parquet", columns=["in_sample", "mentee_uid", "q_ts", "anchor"])
+    s = s[s.in_sample]
+    lo = pd.to_datetime(s.q_ts, utc=True)
+    hi = pd.concat([lo, pd.to_datetime(s.anchor, utc=True)], axis=1).max(axis=1) + pd.Timedelta(days=days)
+    win = pd.DataFrame({"lo": lo.to_numpy(), "hi": hi.to_numpy()}, index=s.mentee_uid.astype("int64").to_numpy())
+    e = ds.dataset(OUT / "mentee_edits").to_table(columns=["uid", "revid", "title", "timestamp", "tags"],
+                                                  filter=ds.field("uid").isin(list(win.index))).to_pandas()
+    r = e[e.tags.map(lambda t: "mw-reverted" in list(t))].copy()
+    ts = pd.to_datetime(r.timestamp, utc=True)
+    w = win.loc[r.uid.astype("int64")]
+    return r[(ts.to_numpy() > w.lo.to_numpy()) & (ts.to_numpy() <= w.hi.to_numpy())]
 
 
 def _revisions(client, params) -> list[dict]:
@@ -265,7 +286,7 @@ def build(log) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     ap = base_parser("M3 revert times for mw-reverted edits near the first question or the cutoff.")
-    ap.add_argument("--phase", choices=["sample", "all", "build"], required=True)
+    ap.add_argument("--phase", choices=["sample", "all", "outcomes", "build"], required=True)
     ap.add_argument("--window-days", type=float, default=30)
     ap.add_argument("--sample-size", type=int, default=1500)
     args = ap.parse_args(argv)
@@ -281,6 +302,8 @@ def main(argv: list[str] | None = None) -> None:
         rep = lag_report(RAW / "revert_times_sample.jsonl")
         (config.RESULTS / "m3_revert_lag_sample.json").write_text(json.dumps(rep, indent=1))
         log.info("lag report: %s", rep)
+    elif args.phase == "outcomes":
+        collect_grouped(client, outcome_candidates(), log, "revert_times.jsonl")
     else:
         collect_grouped(client, candidates(args.window_days), log, "revert_times.jsonl")
 

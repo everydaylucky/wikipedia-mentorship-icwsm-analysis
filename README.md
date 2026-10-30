@@ -77,10 +77,30 @@ This gives:
 | `data/input/embeddings/` | Question and reply embeddings |
 | `data/input/paper_version/` | Files of the paper's first analysis version, used for reuse and comparison |
 | `data/interim/m3/s6/` | Newcomer activity of every asker (so `index_s6` is skipped) |
-| `data/raw/` | Manual mentor list revisions, the mentor claim log, registration times, site settings |
+| `data/raw/` | Manual mentor list revisions, the mentor claim log, registration times, site settings, and the revert times of the newcomers' edits (`raw/m3/`) |
+| `data/interim/m1/` ... `data/interim/m7/` | The outputs of steps M1 to M7 as used for the paper (except the newcomer edit shards already listed above) |
+| `data/analytic/` | The propensity-score dataset and its data dictionary (output of M7) |
 
-The rest of the raw data (talk-page parses, top-up histories, revert times, the API cache) is rebuilt by the online
-steps below. The annotation files are small and are kept in this repository (`data/annotation/`).
+The rest of the raw data (talk-page parses, top-up histories, the API cache) is rebuilt by the online steps below.
+The annotation files are small and are kept in this repository (`data/annotation/`).
+
+### Two ways to reproduce
+
+1. **From the released step outputs (offline, no API keys, about 30 minutes on an 8-core laptop).** Rebuild the
+   propensity-score dataset and every analysis, figure and number check:
+
+   ```bash
+   python run_all.py --from m7
+   ```
+
+   M7 rebuilds `data/analytic/` from the released outputs of M1 to M6; the rebuilt files are identical to the
+   released ones. To start from the released `data/analytic/` instead, use `--from m8`. Then
+   `python run_all.py --legacy` replicates the paper's first analysis version and fills the number check
+   (`results/paper_check.md`). Its comparison with the original result tables (`results/m8_legacy/parity_summary.csv`)
+   reads those tables from the authors' earlier repository, so outside that machine it reports `missing_old`.
+
+2. **From the input data (online steps, API keys needed).** Run every step below, M1 to M9. This collects the
+   talk-page parses, top-up histories and text scores again through the APIs.
 
 ## Running the pipeline
 
@@ -106,6 +126,8 @@ python -m pipeline.m2_conversations.build_questions
 python -m pipeline.m3_activity.collect_topup --online                      # online: missing or incomplete histories
 python -m pipeline.m3_activity.merge_activity
 python -m pipeline.m3_activity.revert_times --online --phase all --window-days 30   # online: when reverted edits were reverted
+python -m pipeline.m3_activity.revert_times --online --phase outcomes   # online, after M5: edits in the outcome windows
+python -m pipeline.m3_activity.revert_times --phase build
 
 # M4 to M9
 python -m pipeline.m4_eligibility.build_eligibility --online               # online only for user-name lookups
@@ -114,15 +136,17 @@ python -m pipeline.m6_text.build_text --online                             # onl
 python -m pipeline.m6_text.agreement                                       # annotation agreement (paper Table 3)
 python -m pipeline.m7_dataset.build_dataset
 python -m pipeline.m8_analysis.run_analysis
-python -m pipeline.m8_analysis.followup                                   # later periods, question-time anchor
-python -m pipeline.m8_analysis.descriptive                                # long-term trajectories, conversation depth
+python -m pipeline.m8_analysis.followup                                   # later periods, question-time anchor, monthly activity
+python -m pipeline.m8_analysis.descriptive                                # long-term trajectories, conversation depth, mentor pool by month
+python -m pipeline.m8_analysis.quality                                    # edit quality (48-hour reverts by other editors)
 python -m pipeline.m9_paper.compare_new
+python -m pipeline.m9_paper.figures                                       # paper figures (results/figures/, copied to the LaTeX folder)
 ```
 
 After the online steps have run once, the whole offline chain can be rerun with:
 
 ```bash
-python run_all.py              # all offline steps, M1 to M9
+python run_all.py              # all offline steps, M1 to M9 (with the camera-ready analyses and the figures)
 python run_all.py --from m5    # start from a later step
 python run_all.py --list       # show which steps have run
 ```

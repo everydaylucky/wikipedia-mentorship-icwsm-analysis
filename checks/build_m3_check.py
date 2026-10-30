@@ -22,6 +22,74 @@ CELLS = [
 md("""
 # M3 newcomer activity data: check notebook
 
+## Plain-language guide
+
+**Why the study needs this module.** The study asks whether a newcomer who gets a reply from their mentor keeps
+editing Wikipedia more than a similar newcomer who gets no reply. To answer that, we need two kinds of facts about
+every newcomer who asked a question: what they did *before* the question (to find "similar" newcomers: how many
+edits, on which kinds of pages, how many were undone, how old the account is) and what they did *after* it (did
+they keep editing). M3 collects exactly this activity history. Without it there are no covariates and no outcomes.
+
+**What raw data it collects, and from where.** Everything comes from the public English Wikipedia API
+(`en.wikipedia.org/w/api.php`), for the 37,095 newcomers ("askers") who posted a question to a mentor (found in M2):
+
+* the **s6 files**, an earlier bulk download made on 2026-04-23 to 24, stored by user name: user profiles
+  (`list=users`), all edits (`list=usercontribs`, 3.4 GB), log entries (`list=logevents`) and abuse filter hits
+  (`list=abuselog`, 5.1 GB);
+* a **top-up** fetch made on 2026-10-24, by user ID, for the 1,363 askers that s6 does not have and for 2,090
+  askers whose s6 history stopped too early;
+* the **account creation log** entry of each person (a `newusers` log entry);
+* for edits that Wikipedia marks as undone, a lookup of **when** they were undone (page histories via
+  `prop=revisions`, fetched 2026-10-24 to 26).
+
+Only records from before the data cutoff, **2026-04-20T14:00:00Z**, are kept.
+
+**What it does with the data, step by step.**
+
+1. Re-indexes the s6 files by user ID (names can change, IDs never do) and keeps only askers.
+2. Finds askers that s6 is missing or whose s6 edits stop too early, and fetches them again by user ID.
+3. Merges the two sources, removes duplicate records, and drops everything on or after the cutoff.
+4. Finds, for each person, the log entry that records how the account was created (registered themselves, made by
+   someone else, or came from another Wikimedia wiki).
+5. For edits tagged `mw-reverted`, finds the revision that undid them and its time.
+
+**What it produces (rows in this run).**
+
+| file | one row is | key columns in words | rows |
+|---|---|---|---|
+| `mentee_profile.parquet` | one asker | user ID, where the data came from, registration time, edit counter, blocked, user groups, how the account was created, and how many edits, logs and abuse filter hits we hold | 37,095 |
+| `mentee_edits/` | one edit by an asker | revision ID, page, namespace (kind of page), time, bytes changed, tags | 3,522,460 |
+| `mentee_logs.parquet` | one log entry about an asker | log type and action (for example account created, blocked), time, who did it | 547,492 |
+| `mentee_abuse.parquet` | one abuse filter hit (an automatic rule flagged an action) | filter, what the user tried, what the filter did, time | 96,902 |
+| `data/raw/m3/revert_times*.jsonl` | one edit tagged `mw-reverted` | how the revert was found, the revert revision, its time, hours from edit to revert | 38,214 |
+
+**Words used below.**
+
+* A **revert** is an edit that undoes someone else's edit. Wikipedia adds the tag **`mw-reverted`** to the edit that
+  was undone. The tag does not say *when* the revert happened. That matters: a covariate measured before the
+  question (for example "how many of your edits were undone") must not count a revert that happened *after* the
+  question, otherwise the mentor's own reply period leaks into the "before" picture. So M3 looks up the revert time.
+* The **sha1 method**: every page version has a fingerprint (sha1). If a later version has the same fingerprint as a
+  version from before the edit, the page was put back, so that later revision is the revert. This is the same rule
+  Wikipedia itself uses.
+* **Namespace** (ns): the kind of page. 0 = article, 2 = user page, 3 = user talk page, 4 = project page.
+* **Cutoff**: the fixed end of the data, 2026-04-20T14:00:00Z. Nothing on or after it may appear.
+
+**How to read this notebook.**
+
+* All outputs below are saved from the run on the final data (cutoff 2026-04-20T14:00Z). You do not need to run
+  anything; just read.
+* An **invariant** is a rule that must hold for every row (for example "no edit after the cutoff"). Each one prints
+  `[OK ]` if it holds and `[FAIL]` if it does not. In this run all 103 hold.
+* A **tracer** is a fixed person we always look at, so the same examples can be compared across runs.
+* A **random sample** is a set of people drawn at random (fixed seed, so it is repeatable). For them the notebook
+  puts the raw downloaded record next to the processed value so you can see they match. The links open the same
+  record on Wikipedia.
+* Under each check, **"What this checks"** says what the code tests and why it matters, and **"What the output
+  shows"** explains the result.
+
+## Technical summary
+
 **What the module does.** For every person who asked a mentor a question (an "asker", from M2), M3 builds:
 
 * a **profile** (`mentee_profile.parquet`): registration time, edit count, block status, user groups, current name,
@@ -29,7 +97,7 @@ md("""
   counts of edits, logs and abuse filter hits;
 * all **edits** before the data cutoff (`mentee_edits/`), all **log entries** (`mentee_logs.parquet`) and all
   **abuse filter hits** (`mentee_abuse.parquet`);
-* the **revert time** of edits tagged `mw-reverted` (`data/raw/m3/revert_times*.jsonl`; that job is still running).
+* the **revert time** of edits tagged `mw-reverted` (`data/raw/m3/revert_times*.jsonl`; the lookup has finished and covers every edit that needs it).
 
 **How it is built (the steps this notebook covers).**
 
@@ -47,10 +115,14 @@ md("""
 namespaces, reverts, abuse filter hits, account age), the account creation action used by M4 for the sample rule D10,
 and the `late_fetch` sensitivity analysis in M8.
 
-**How to use this notebook.** Run it from top to bottom (about 2 to 3 minutes). Section 3 recomputes every derived
-field from the raw files and prints `[OK ]` or `[FAIL]`. Section 5 puts raw records next to processed values for
+**How to use this notebook.** The saved outputs are from the final run; to rerun, go from top to bottom (about 3
+minutes). Section 3 recomputes every derived field from the raw files and prints `[OK ]` or `[FAIL]`. Section 5 puts raw records next to processed values for
 fixed tracer people and for random people; change `SEED` in the setup cell to draw new random people. Every link
 opens the record on Wikipedia so you can check it by eye.
+"""),
+md("""
+**What this checks.** Nothing yet: this cell loads the four M3 tables and the M2 question list, and draws the random
+people used in section 5. It prints the table sizes so you can see the scale of the data.
 """),
 code(r'''
 # ── 1. Setup ──────────────────────────────────────────────────────────────
@@ -104,11 +176,20 @@ print(f"askers {len(prof):,} | edits {len(edits):,} | logs {len(logs):,} | abuse
 print("random people drawn with SEED =", SEED, ":", SAMPLE)
 '''),
 md("""
+**What the output shows.** In the run on the final data (cutoff 2026-04-20T14:00Z) there are 37,095 askers,
+3,522,460 edits, 547,492 log entries and 96,902 abuse filter hits. The 15 random people (5 per data source) are
+listed by user ID; they are examined one by one in section 5.
+"""),
+md("""
 ### Data dictionary
 
 One table per output. "Checked in" names the notebook cell that verifies the column (3.x are invariants over all rows,
 5.x are random raw-versus-processed examples, 4.x are comparisons with independent data). The cell after each table
 confirms that the dictionary lists every column in the file.
+"""),
+md("""
+**What this checks.** The data dictionary below explains every column. The check confirms that the dictionary and
+the real files list the same columns, so no column is undocumented.
 """),
 code(r'''
 DICT = {}
@@ -200,7 +281,15 @@ _rt_cols = set().union(*[set(r) for p in RAW3.glob("revert_times*.jsonl") for r 
 show_dict("revert_times (raw jsonl)", _rt_cols)
 '''),
 md("""
+**What the output shows.** All five dictionary checks print `[OK ]`: every column in every output file is listed and
+explained, and the dictionary names no column that does not exist.
+"""),
+md("""
 ## 2. Files and manifests
+
+**What this checks.** Each step leaves a small receipt (a "manifest") saying when it ran, which cutoff it used and
+how many rows it wrote. If one step used a different cutoff, or the tables were changed after the receipt was
+written, the numbers in the paper could come from mismatched data.
 
 Each step writes a manifest (finish time, cutoff, input and output files, counts). The checks below confirm that
 the manifests use the same cutoff as `config.py` and that the counts in the M3 manifest equal the tables on disk.
@@ -228,9 +317,18 @@ for p in sorted(RAW3.iterdir()):
     print(f"  {p.name:28s} {p.stat().st_size / 1e6:9.1f} MB  modified {pd.Timestamp(p.stat().st_mtime, unit='s'):%Y-%m-%d %H:%M}")
 '''),
 md("""
+**What the output shows.** All three steps used the cutoff 2026-04-20T14:00:00Z, the merge ran last (2026-10-26)
+after the other two (2026-10-24), and the counts in the merge manifest equal the tables on disk. The 1,363 askers that
+s6 lacks are exactly the 1,363 "topup" people. The s6 index dropped 6,860 edits, 13 log entries and 101 abuse filter
+hits that fell on or after the cutoff (s6 was downloaded three days after it). All six checks pass.
+"""),
+md("""
 ## 3. Invariants (all should be OK)
 
 ### 3.0 Read the raw files once
+
+**What this checks.** This cell only reads the raw downloads into memory, so the later checks can compare the
+processed tables against the original records instead of trusting the pipeline's own intermediate files.
 
 Everything in section 3 is recomputed from the **raw** files, not from the intermediate s6 index, where possible:
 the raw s6 profile, edit, log and abuse files (stored by user name), and the raw top-up files. For the two very large
@@ -299,7 +397,16 @@ print(f"raw s6: {len(s6_name):,} askers in profiles, {len(s6_edit_count):,} edit
       f"creation.jsonl {len(creation_raw):,} uids | stale.json {len(stale):,} ({time.time() - t:.0f} s)")
 '''),
 md("""
+**What the output shows.** The raw s6 files hold 35,732 askers (all with exactly one name, check `[OK ]`). The top-up
+files hold 1,527 + 2,085 person records, of which 3,453 are current askers (1,363 topup + 2,090 s6+topup). The other
+159 lines in `topup.jsonl` are people who are not in the current M2 asker list; they are ignored, which is fine.
+"""),
+md("""
 ### 3.1 Profile
+
+**What this checks.** For every one of the 37,095 askers, each profile field (name, registration time, edit counter,
+blocked, groups, and so on) is rebuilt from the raw download with separate code and compared with the stored value.
+Registration time feeds the account age covariate, so it has to be right for everyone.
 
 `source` is recomputed from which raw files contain the person; the profile fields are recomputed from the raw s6
 profile line (s6 people) or the raw top-up `user` record (top-up people), with the documented fallback to the
@@ -341,7 +448,15 @@ for f, bad in bad_fields.items():
         print(f"\n{f}: first mismatches"); print([(u, clean(P.at[u, f]), exp[u].get(f)) for u in bad[:5]])
 '''),
 md("""
+**What the output shows.** Every field matches the raw value for every asker (0 mismatches in each of 10 fields), no
+asker is left without data, and the edit, log and abuse counts in the profile equal the rows in the tables.
+"""),
+md("""
 ### 3.2 Edits
+
+**What this checks.** The edit table is the base of almost every covariate and outcome. The checks make sure that no
+edit is lost or added during merging, that no edit is counted twice, that nothing on or after the cutoff gets in, and
+that each newcomer's question edit (from M2) is in their own history, which shows the user IDs line up across modules.
 
 The merged edit table must be exactly the union of the s6 edits and the raw top-up edits before the cutoff, with
 each revision once. For top-up rows every field is compared with the raw API record. For s6 rows we can only check
@@ -406,7 +521,18 @@ ck.add("every asker has at least one edit (the question itself is an edit)", (pr
 print(f"({time.time() - t:.0f} s)")
 '''),
 md("""
+**What the output shows.** All 29 edit checks pass. The merged table (3,522,460 edits) is exactly the 3,227,855 s6
+edits plus the top-up edits before the cutoff; 7,491 top-up edits on or after the cutoff were dropped, and 2,451
+top-up edits that s6 already had were kept once. For the 304,547 top-up edits every field equals the raw API record.
+The raw s6 edit counts add up exactly (3,234,715 = 3,227,855 kept + 6,860 after the cutoff). No one's registration is
+later than their first edit, and every M2 question is found in its asker's edits.
+"""),
+md("""
 ### 3.3 Logs and abuse filter hits
+
+**What this checks.** Log entries (for example "account created" or "blocked") and abuse filter hits (an automatic
+rule on Wikipedia flagged an action, such as adding a suspicious link) are used as covariates. The checks compare the
+stored rows with the raw downloads, the same way as for edits.
 
 Logs: the raw s6 log file is small, so **every** log row (s6 and top-up) is compared with its raw record, field by
 field. Abuse filter hits: the key set is checked for everyone, every top-up row is compared with the raw record, and
@@ -455,7 +581,17 @@ print(f"raw s6 abuse_count total {int(raw_ac.sum()):,} | s6 index {len(s6ab):,} 
       f"{mans['m3_index']['counts']['abuse']['dropped_after_cutoff']} ({time.time() - t:.0f} s)")
 '''),
 md("""
+**What the output shows.** All 27 checks pass. Every one of the 547,492 log rows matches its raw record in every field
+(0 differences). For abuse filter hits, the raw s6 total 77,686 = 77,585 kept + 101 on or after the cutoff, and every
+top-up row matches the raw record.
+"""),
+md("""
 ### 3.4 Account creation log (R2.2, R7.7)
+
+**What this checks.** The sample rule in M4 keeps people who registered their own account (`create`), so we must know
+how each account was made. The creation entry is recomputed with separate simple code and compared with the profile.
+It also checks that the creation entry happens within a few seconds of the registration time, which shows we picked
+the right entry.
 
 Recomputed here with simple separate code: among the person's own logs, take the `newusers` entries whose
 `params.userid` is the person's uid, and keep the earliest. If there is none, use the first entry with a record in
@@ -494,7 +630,21 @@ print("seconds from registration to the creation log entry:", gap.describe().rou
 ck.add("for 99% of askers the creation log is within 2 s before to 10 s after registration (R7.7)", gap.between(-2, 10).mean() > .99)
 '''),
 md("""
-### 3.5 Revert times (R7.8; the job is still running, so the files are partial)
+**What the output shows.** All 8 checks pass. The creation fields match the recomputed values for every asker. For
+99.94% of `create` entries the person who did it has the person's own name; the rest are renamed accounts (the log
+keeps the old name). The median gap from registration to the creation entry is 1 second. The mean (8,053 s) and the
+maximum (about 9.4 years) look odd but come from one renamed old account whose entry is from 2015 (shown in section
+6). The extra line `True` under the output is just the value returned by the last check and can be ignored.
+"""),
+md("""
+### 3.5 Revert times (R7.8)
+
+**What this checks.** For each edit tagged `mw-reverted`, M3 looked up the revision that undid it and its time. M7
+uses this time so that a pre-question covariate counts only reverts that happened before the question, and an
+outcome counts only reverts before the cutoff. The checks confirm each result belongs to a real reverted edit of the
+same person and that the revert comes after the edit. Only edits within 30 days before the person's first question
+or before the cutoff need a lookup ("candidates"): for older edits the revert cannot change which side of the
+question or cutoff it falls on in practice.
 
 The two raw files are combined, the full run winning over the sample run for the same edit (as in `revert_times.build`).
 Each result must point to an edit of the same person that carries the `mw-reverted` tag, and a found revert must come
@@ -533,9 +683,19 @@ print(f"\nmw-reverted edits {len(rev_edits):,} | candidates (30-day window) {len
 print("methods so far:", rt.method.value_counts().to_dict())
 print("found reverts after the cutoff, by edit source:", found.assign(after=found.revert_ts >= CUT).groupby("source").after.sum().to_dict())
 '''),
+md("""
+**What the output shows.** All 11 checks pass. The lookup job is finished: all 36,981 candidate edits (of 185,585
+reverted edits) have a result (100%), plus 1,233 extra edits from an earlier random sample used to choose the 30-day
+window. Results: 36,882 found by sha1, 771 by an undo naming the edit, 321 on pages that were later deleted, and 240
+not found. For 1,008 edits (651 s6, 357 top-up) the revert came after the cutoff; that is expected (s6 was
+downloaded 3 days after the cutoff) and M7 does not count those reverts.
+"""),
 code(r'''
 ck.report()
 '''),
+md("""
+**What the output shows.** All 103 invariants in sections 1 to 3 hold (`103 / 103 checks passed`).
+"""),
 md("""
 ## 4. Comparison with the previous report and with independent data
 
@@ -554,7 +714,14 @@ else:
     print("no previous report")
 '''),
 md("""
+**What this checks and shows.** The main counts are compared with the saved report from the previous run. All four
+are the same, so nothing changed between runs.
+"""),
+md("""
 ### 4.2 Independent edit data (val_mentee_contribs)
+
+**What this checks.** A second, separately made download of the same people's edits is used as an outside check: if
+our data were missing many edits, the activity covariates and outcomes would be too low.
 
 `val_mentee_contribs.jsonl` was fetched separately by the 2SLS pipeline in June 2026, by user name, with the userid
 on every edit. For people in both, we compare the revids before the cutoff. The validation data holds at most 5,000
@@ -591,9 +758,18 @@ else:
     display(pu.sort_values("recall").head(10))
 '''),
 md("""
+**What the output shows.** For the 30,173 people in both sources, 99.74% of the edits in the independent June
+download are also in our data (target above 99%). Only 3,976 edits are missing from ours. The overall agreement on the
+union (58.8%) is low only because the June download keeps at most 5,000 edits per person and is incomplete for some
+people; that does not mean our data is wrong. 23 people are below 99% coverage. Most have only a handful of edits
+(for example 1 of 5), which fits pages deleted later. One person (uid 48833897) lacks about 1,770 of 3,473 June
+edits; this is the largest single gap and is worth a look by a reviewer, but it affects one asker out of 37,095.
+"""),
+md("""
 ### 4.3 Independent registration times (val_mentee_registration, June 2026, by uid)
 
-Registration time never changes, so it must agree with the profile for everyone found in both.
+**What this checks.** Registration time never changes, so it must agree with the profile for everyone found in both.
+It is the basis of the account age covariate.
 """),
 code(r'''
 if not config.EXTERNAL["val_mentee_registration"].exists():
@@ -608,9 +784,16 @@ else:
     reg_agree = 1 - len(dis) / max(len(common), 1)
 '''),
 md("""
+**What the output shows.** 30,171 askers are in the June data and the registration time agrees for all of them (0
+differences).
+"""),
+md("""
 ## 5. Tracer samples and random samples: raw records next to processed values
 
 ### 5.1 Fixed tracer people
+
+**What this checks.** These are the same fixed people every run, so a reader can open their Wikipedia pages and compare
+by eye. Nothing is tested automatically here.
 
 For each fixed tracer asker: the profile, the creation log, the first 5 edits, and links to open the contributions
 page and the creation log on Wikipedia.
@@ -627,6 +810,13 @@ for uid in [int(u) for u in tr[tr.kind == "mentee"].uid.dropna()]:
     print(f"  edits {len(e)} (articles, ns 0: {int((e.ns == 0).sum())}); logs {r.n_logs}; abuse {r.n_abuse}")
     display(e.head(5)[["timestamp", "ns", "revid", "sizediff", "tags"]])
 '''),
+md("""
+**What the output shows.** Each tracer has a creation entry within 2 seconds of registration, and their first
+edits come after registration. Many first edits carry `mw-reverted` (newcomers' early edits are often undone), and the
+question edit shows up with the tag `mentorship module question`. One tracer's account was `autocreate` (it was made
+by logging in from another Wikimedia wiki); such people are excluded by the sample rule in M4. Very active tracers
+(thousands of edits) are `s6+topup`, because their s6 history stopped early and was completed in October.
+"""),
 md("""
 ### Helper for the random examples
 
@@ -735,10 +925,18 @@ md("""
 ### 5.2 Random s6 askers
 
 People whose data comes only from the April s6 files.
+
+**What this checks.** For each random person, the raw downloaded record and the processed table are shown side by
+side (profile, edits, log and abuse counts, creation entry), and each comparison prints "all fields match" or a
+mismatch.
 """),
 code(r'''
 for uid in SAMPLE["s6"]: person_check(uid)
 '''),
+md("""
+**What the output shows.** For all 5 random s6 people every field matches the raw record, no edit is on or after the
+cutoff, and there are no duplicate edits.
+"""),
 md("""
 ### 5.3 Random s6+topup askers
 
@@ -748,6 +946,12 @@ each revision once, and all of them before the cutoff.
 code(r'''
 for uid in SAMPLE["s6+topup"]: person_check(uid)
 '''),
+md("""
+**What the output shows.** For all 5 random s6+topup people every field matches. For example, the first person has
+2,106 s6 edits plus 68 top-up edits; 1 of the 2,174 raw edits is after the cutoff and is correctly dropped, giving
+2,173. The raw log and abuse counts include duplicates (the same entry from both sources) and these are correctly
+counted once.
+"""),
 md("""
 ### 5.4 Random topup askers
 
@@ -759,7 +963,15 @@ print("\nrandom people: all fields match for", sum(ok for *_, ok in random_resul
       "" if all(ok for *_, ok in random_results) else "-> MISMATCH, see above")
 '''),
 md("""
+**What the output shows.** For all 5 random topup people everything comes from the October fetch and every field
+matches. One of them is blocked, and the blocked flag is read correctly. Overall: all fields match for 15 of 15 random
+people.
+"""),
+md("""
 ### 5.5 Random reverted edits with a revert time
+
+**What this checks.** Five random reverts found by the lookup, with links to the edit and to the revision that undid
+it, and a recomputation of the hours between them.
 
 Open the two `diff` links: the first shows the newcomer's edit, the second the revision that undid it. The revert
 revision should restore the page (sha1 method) or be an undo whose summary names the edit (undo_comment).
@@ -779,7 +991,14 @@ for r in rs.itertuples():
     rev_ok.append(compare(hand, {"edit time": r.ts, "uid": int(r.uid), "lag_hours": r.lag_hours, "revert after edit": r.revert_ts > r.ts}))
 '''),
 md("""
+**What the output shows.** All 5 match: the revert is after the edit, before the cutoff, and the stored hours (from
+0.15 to 105 hours) equal the recomputed ones. All 5 were found by the sha1 method.
+"""),
+md("""
 ## 6. Edge-case lists
+
+**What this checks.** Lists of unusual cases that each step wrote down, so a reader can see them instead of them being
+silently dropped.
 
 Issue files are written by each step. Note: a step that skips work already done (for example `collect_topup`,
 which resumes) writes an empty `summary.json`, so older issue files can be leftovers from an earlier run. The table
@@ -802,6 +1021,13 @@ print("registration years of askers without a creation log (logs started in 2005
 wa = read_jsonl(config.INTERIM / "m3" / "_issues" / "asker_without_activity.jsonl")
 print(f"asker_without_activity.jsonl: {len(wa)} rows, of which now without data: {sum(P.at[r['ids']['uid'], 'source'] == 'none' for r in wa if r['ids']['uid'] in P.index)}")
 '''),
+md("""
+**What the output shows.** 596 s6 profile rows have no user ID (names that no longer exist); they are not used. Two
+issue files are marked as from an earlier run, because the later run skipped finished work; their content still
+matches the current data. The 82 askers with no creation entry are exactly the 82 with `creation_source = none`, and
+all registered in 2004 to 2013, when Wikipedia's account logs were incomplete. The 1,519 askers once listed as
+"without activity" now all have data (0 left).
+"""),
 code(r'''
 print("creation log far from registration (outside -2 s to +10 s):")
 far = prof[prof.creation_gap_s.notna() & ~prof.creation_gap_s.between(-2, 10)]
@@ -819,10 +1045,23 @@ for meth in ("page_deleted", "not_found", "api_error"):
     print(f"  {meth}: {len(x)}", [diff(i) for i in pick(x, 3, SEED).revid])
 '''),
 md("""
+**What the output shows.** Only 3 creation entries fall outside the 2 seconds before to 10 seconds after
+registration: two at 11 and 23 seconds (still the right entry), and one renamed old account (`~enwiki` suffix) whose
+entry is from 2015, when accounts were merged across wikis. For 286 askers the profile edit counter is lower than the
+edits we hold. A reviewer may find this surprising: only 0.3% of them registered before 2010, so the usual "old
+counters are incomplete" reason does not explain it. Wikipedia's edit counter is known to drift and is not used as a
+covariate (the covariates are counted from the edit table), so it does not affect the results. 2,085 people were
+re-fetched because they had newer edits than s6 held and 5 because s6 stopped at exactly 500 edits. There are no API
+errors among the revert lookups.
+"""),
+md("""
 ## 7. Distributions
 
+**What this checks.** Simple counts, to see whether the data looks reasonable and whether the late-fetched people
+look different from the rest.
+
 Account creation action (D10 uses it); registration year by source; and s6 versus top-up people, to see whether the
-top-up people differ in a systematic way. Then the revert lag found so far.
+top-up people differ in a systematic way. Then the time from an edit to its revert.
 """),
 code(r'''
 print("account creation action:\n" + prof.creation_action.value_counts(dropna=False).to_string())
@@ -837,7 +1076,19 @@ display(pd.crosstab(edits.timestamp.str[:4], edits.source))
 print("\nhours from edit to revert (found so far):", found.lag_hours.quantile([.5, .9, .95, .99]).round(2).to_dict(),
       "| share over 30 days:", round(float((found.lag_hours > 24 * 30).mean()), 4))
 '''),
-md("## 8. Summary (written to results/m3_report.json, used by M9)"),
+md("""
+**What the output shows.** 36,335 of 37,095 accounts (98%) registered themselves (`create`). Almost all askers
+registered in 2021 or later, when the mentorship feature started. The s6+topup people are much more active (median
+72 edits versus 3) because they were re-fetched precisely for having many recent edits; the topup people look like
+the s6 people (median 2 edits). This is why M8 reruns the analysis without late-fetched people. The large top-up
+edit count in 2026 (200,103) is the recent edits added for those active people. Half of all reverts happen within
+1.6 hours of the edit and only 2.7% take longer than 30 days, which supports the 30-day lookup window.
+"""),
+md("""
+## 8. Summary (written to results/m3_report.json, used by M9)
+
+**What this checks.** The key numbers are saved to a report file and a one-line summary of all checks is printed.
+"""),
 code(r'''
 report = {"n_askers": len(prof), "source": prof.source.value_counts().to_dict(), "n_edits": len(edits),
           "creation_action": {str(k): int(v) for k, v in prof.creation_action.value_counts(dropna=False).items()},
@@ -851,6 +1102,11 @@ print(f"\ninvariants: {len(ck.items) - n_fail} / {len(ck.items)} OK | random peo
       f"registration agrees with June data: {'n/a' if reg_agree is None else format(reg_agree, '.4%')} | revert-time coverage of candidates so far: {cov_all:.1%}")
 print(f"notebook run time {time.time() - T0:.0f} s")
 '''),
+md("""
+**What the output shows.** 103 of 103 invariants hold, all 15 random people and all 5 random reverts match their raw
+records, registration times agree 100% with the June data, 99.74% of independent edits are found, and every edit that
+needs a revert time has one. M3 is ready for use by M4, M5 and M7.
+"""),
 ]
 
 

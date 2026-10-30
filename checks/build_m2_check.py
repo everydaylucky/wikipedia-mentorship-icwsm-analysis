@@ -27,7 +27,67 @@ CELLS = [
 md("""
 # M2 questions and replies: check notebook
 
-## 1. What this module does
+## Plain-language guide
+
+**Why the study needs this module.** The paper asks whether a newcomer who gets a reply from a mentor keeps editing
+Wikipedia more often than a similar newcomer who gets no reply. To answer that, we must know, for every question a
+newcomer sent to a mentor: when it was asked, who asked it, which mentor it went to, whether anyone answered, who
+answered, and when. M2 builds exactly that table. Its "reply or not" column is the **treatment** of the study (the thing
+whose effect we measure), and the first reply time is the moment from which later activity is counted. The question
+text is also passed on to M6, which measures things like politeness and topic.
+
+**What raw data it collects, and from where.** All data come from the public English Wikipedia API
+(`en.wikipedia.org/w/api.php`); nothing is private.
+
+* The list of questions: every edit on a mentor's user talk page that Wikipedia tagged `mentorship module question` or
+  `mentorship panel question` (the tags the "ask your mentor" button adds). Most of the list comes from an earlier
+  collection of this project (called **eval2**, 44,650 records, downloaded 2026-06-12); a new "top-up" sweep over the
+  mentors' talk pages added 16 more, of which 8 fall before the cutoff.
+* The talk pages and their archives (9,884 pages) as they stood at the cutoff, parsed by Wikipedia's own
+  **DiscussionTools** service (`action=discussiontoolspageinfo`), which splits a talk page into threads and signed comments.
+* For threads that were deleted or moved away before the cutoff: older revisions of the page (`action=parse` on one section).
+* The page move log (212 moves), so a talk page renamed later can be traced back to its name at question time.
+* The edit right after each question, to see whether the question was removed at once and why.
+* User ids for signature names that are not on the mentor roster (887 of 1,274 names resolved).
+
+Only questions saved before the **cutoff, 2026-04-20T14:00:00Z**, are kept, and only replies before the cutoff count.
+The download scripts used a slightly later window (to 2026-04-24) to be safe; the build step then cuts at 2026-04-20T14:00Z.
+
+**What it does, step by step.**
+
+1. Build the list of questions (one per tagged edit before the cutoff).
+2. Find the talk page title at the time of the question (pages are sometimes renamed later) and the mentor who owns it.
+3. Read the "your mentor is away" note, if any, to learn the newcomer's own (primary) mentor, and remove the note from the text.
+4. Find the thread that holds the question in the DiscussionTools parse (or in old revisions if it was deleted).
+5. Split the thread into **turns** (one signed comment each) and label each speaker: the newcomer, the page's mentor,
+   the away (primary) mentor, another mentor, someone else, or unknown.
+6. Compute the reply fields: was there any reply, the first reply time and replier, was there a mentor reply, and counts of turns.
+7. Clean the question text (remove templates, signatures and markup) and flag unusual cases for later modules.
+
+**What it produces.**
+
+* `data/interim/m2/questions.parquet`: **one row = one question** (42,316 rows in this run). Key columns: the question's
+  revision id, time, asker, talk page and its mentor, primary mentor, whether the question was asked from the article
+  editor, the question text, whether a thread was found, `has_any_reply` (the treatment), first reply time and replier
+  and their role, `has_mentor_reply`, turn counts, and a list of problem flags.
+* `data/interim/m2/turns.jsonl`: **one row = one question**, holding the list of its turns (91,906 turns in total). Each turn
+  has the signer's name and user id, the role, the time (to the minute), the reply depth, the text and link counts.
+* `data/interim/m2/_issues/*.jsonl`: one file per kind of unusual case, one line per affected question, so each can be looked up.
+* `results/m2_report.json`: a short summary (counts and rates) read by the final report.
+
+## How to read this notebook
+
+* All outputs below are already saved from the run on the final data (cutoff 2026-04-20T14:00Z). You do not need to run anything.
+* Each automatic check prints `[OK ]` (the rule holds for every row) or `[FAIL]` (it does not). In this run every check printed `[OK ]`.
+* An **invariant** is a rule that must always be true, for example "no question is after the cutoff".
+* **Recomputed vs stored**: the notebook re-derives a value with its own short code (not the pipeline's code) and compares
+  it with the value the pipeline saved. A match means two independent implementations agree.
+* A **tracer** is a fixed question chosen in advance because it is a known tricky case; the same tracers are followed
+  through every module. A **random sample** is a set of questions drawn by chance (fixed seed, so it is repeatable)
+  to show typical cases in full.
+* Links of the form `en.wikipedia.org/w/index.php?oldid=...` open the exact edit on Wikipedia, so anyone can check by eye.
+
+## 1. What this module does (technical summary)
 
 **Code**: `pipeline/m2_conversations/` (`collect_topup.py` downloads raw data, `turns.py` splits a thread into turns,
 `build_questions.py` builds the tables offline).
@@ -53,12 +113,17 @@ that revision `mentorship module question` or `mentorship panel question`. M2 do
 **Paper numbers that depend on it**: the treatment (reply or not), the timing origin (first reply time), reply
 features (RQ3), and the question text (M6).
 
-## How to use this notebook
+## Technical notes on this notebook
 
-* Run all cells from the top (about 1 to 2 minutes). Every check prints `[OK ]` or `[FAIL]`; mismatch tables print `MISMATCH`.
+* The saved outputs are from the run on the final data (cutoff 2026-04-20T14:00Z). Rerunning all cells takes a few minutes. Every check prints `[OK ]` or `[FAIL]`;
+  mismatch tables print `MISMATCH` (none appear in this run).
 * Section 3.2 recomputes every derived field for **all** questions with simple code written here (not the pipeline functions).
 * Section 5 shows random questions in full: raw wikitext next to cleaned text, the raw DiscussionTools record next to each
   processed turn, the reason for each speaker role, and a recomputed-versus-stored table. Change `SEED` below to see other questions.
+"""),
+md("""
+**What this cell does.** It loads the M2 outputs and the raw downloaded files that the checks below compare against.
+It is not a check itself; it prints how many records were loaded.
 """),
 code(r'''
 # ── setup ────────────────────────────────────────────────────────────────────
@@ -93,7 +158,17 @@ EV_KEEP = ("revid", "timestamp", "parentid", "page", "mentor_uid", "mentee_uid",
 ev = {int(r["revid"]): {k: r.get(k) for k in EV_KEEP} for r in iter_jsonl(config.EXTERNAL["eval2_conversations"])}
 print(f"questions {len(q)} | with turns {len(turns)} | pages {len(pages)} | eval2 records {len(ev)} | top-up {len(topup)}")
 '''),
-md("## 2. Files and manifest"),
+md("""
+**What the output shows.** In the run on the final data (cutoff 2026-04-20T14:00Z): 42,316 questions, each with a turns record; 9,884 talk pages; 44,650 eval2
+records and 16 top-up records. eval2 has more records than the table because its download (2026-06-12) also contains
+questions saved after the cutoff, which are left out on purpose.
+"""),
+md("""
+## 2. Files and manifest
+
+**What this checks.** Each step writes a small "manifest" file saying when it finished, which cutoff it used, and how many
+items it handled. This shows the files come from the expected run.
+"""),
 code(r'''
 for name in ("m2_collect_pages", "m2_collect_fallback", "m2"):
     p = config.INTERIM / name / "manifest.json"
@@ -103,6 +178,13 @@ for name in ("m2_collect_pages", "m2_collect_fallback", "m2"):
     print(f"\n[{name}] finished {man['finished_at']} | cutoff {man['data_cutoff']} | {man['elapsed_sec']} s")
     print(json.dumps(man["counts"], ensure_ascii=False, indent=1)[:1500])
 '''),
+md("""
+**What the output shows.** The two download steps (`m2_collect_pages`, `m2_collect_fallback`) list cutoff 2026-04-24: they
+downloaded a few extra days on purpose, and the build step (`m2`, finished 2026-10-26) applies the real cutoff
+2026-04-20T14:00:00Z. The build reports 42,316 questions, a thread found for 42,220, a reply for 31,153 and a mentor reply
+for 29,742. Of 4,303 deleted threads looked for in old revisions, 4,246 were recovered. "unscanned_mentors: 11" means 11
+mentors' pages were not swept by the top-up search (the top-up only adds questions eval2 missed, so this can at most miss a few).
+"""),
 md("""
 ### Data dictionary
 
@@ -151,9 +233,20 @@ display(pd.DataFrame(DD_Q, columns=["column", "meaning", "checked in"]))
 display(pd.DataFrame(DD_T, columns=["turn field", "meaning", "checked in"]))
 '''),
 md("""
+**What the output shows.** Two tables explaining every column and where it is checked. The first line reports one column
+not described in the table: `question_wikitext_origin`. It says where the question text came from: `collected` (the text
+from eval2 or the top-up, 42,164 questions) or `diff` (152 questions whose collected text was obviously broken, for example
+folded away by a later template, so the text was taken again from the edit that posted the question; see PLAN.md issue I-60).
+Section 3.2 uses that same diff text when it recomputes the question text, so this column is covered in practice.
+"""),
+md("""
 ## 3. Invariants
 
 ### 3.1 Structure and flag rules
+
+**What this checks.** Basic rules that must hold for every row: each question appears once, nothing is after the cutoff,
+a reply is never earlier than the question, a mentor reply always counts as a reply, and each problem flag is set exactly
+when its condition is true. If any of these failed, the treatment or the timing in the paper could be wrong.
 """),
 code(r'''
 ck = Checks()
@@ -208,6 +301,14 @@ ck.add("no away notice -> primary_mentor_uid == page_mentor_uid and primary_ment
 print("\nshare of questions with a thread:", f"{found.mean():.2%}", "| origin:", q.thread_origin.value_counts(dropna=False).to_dict())
 '''),
 md("""
+**What the output shows.** All rules pass (`[OK ]`). The "FutureWarning" lines are a harmless notice from the pandas library
+about a future version, not an error. A thread was found for 99.77% of questions: 37,974 from the talk page at the cutoff,
+2,920 and 1,325 recovered from older revisions (the thread was deleted or archived elsewhere before the cutoff), 1 split by
+a simple signature search, and 96 not found at all (these get no reply value and are left out of the analysis). Two
+recovered sections were fetched for a different question in the same revision; that is fine, since one old revision can hold
+both questions.
+"""),
+md("""
 ### 3.2 Independent recomputation for every question
 
 The code below re-implements the rules in plain Python, without calling any M2 function:
@@ -219,6 +320,11 @@ The code below re-implements the rules in plain Python, without calling any M2 f
 * **role** order: no author -> unknown; newcomer name or uid -> mentee; uid == page mentor -> page_mentor; uid == primary mentor
   -> primary_mentor; a mentor name on the M1 roster at the turn time -> other_mentor; else third_party;
 * **reply**: a turn whose role is not mentee, with a time at or after the question minute and before the cutoff.
+
+**What this checks, in plain words.** The next two cells write the module's rules again from scratch, in short and simple
+code, and apply them to all 42,316 questions and every turn. Then every stored value is compared with the recomputed one.
+This matters because the treatment (`has_any_reply`), the clock start (`first_reply_ts`) and the replier role all feed
+directly into the paper's estimates. The first cell only defines helper functions and prints nothing.
 """),
 code(r'''
 def my_name(n):
@@ -247,8 +353,13 @@ AWAY_RE = re.compile(r"Note:\s*\[\[\s*User(?:[ _]talk)?\s*:\s*([^|\]]+)[^\]]*\]\
 HEAD_ASKER = re.compile(r"^question from (.+?)(?: on .+)? \(\d{1,2}:\d{2}, ")
 HEAD_PAGE = re.compile(r"^question from .+? on (.+) \(\d{1,2}:\d{2}, ")
 def nhead(h): return re.sub(r"\s+", " ", (h or "").replace("_", " ")).strip().lower()
+_dp = RAW / "question_text_from_diff.json"
+FROM_DIFF = json.loads(_dp.read_text()) if _dp.exists() else {}     # I-60: text as posted, for the obviously broken questions
 def raw_wikitext(rv):
-    """the question wikitext as downloaded (eval2 record, or question_wikitext.json for top-up questions)"""
+    """the question wikitext as downloaded: the diff of the tagged revision when M2 fetched it (I-60), otherwise the
+    eval2 record, or question_wikitext.json for top-up questions"""
+    d = (FROM_DIFF.get(str(rv)) or {}).get("text") or ""
+    if d.strip(): return d
     return (ev[rv]["question_text"] if rv in ev else (topup_wt.get(str(rv)) or {}).get("text")) or ""
 def my_away(rv):
     m = AWAY_RE.search(raw_wikitext(rv)[:1000])
@@ -387,12 +498,22 @@ if role_bad:
     display(pd.DataFrame(role_bad[:20], columns=["revid", "turn", "author", "recomputed", "stored", "uid_recomputed", "uid_stored", "why"]))
 '''),
 md("""
+**What the output shows.** In the run on the final data (cutoff 2026-04-20T14:00Z), every one of the 30 fields matches for all 42,316 questions (0 mismatches each),
+and the speaker role and signer id match for all 91,906 turns. So the stored reply status, reply times and roles are exactly
+what the written rules give. (This confirms the code follows the rules; whether the rules themselves are sensible is shown by the
+side-by-side examples in section 5.)
+"""),
+md("""
 ### 3.3 Raw DiscussionTools record versus processed turns (bulk random sample)
 
 For `N_BULK` random questions whose thread came from a DiscussionTools page parse, find the raw thread in
 `data/raw/m2/dt/<revid>.json` (or `fallback_dt/`) and compare it turn by turn with `turns.jsonl`:
 author, time (minute), level, comment id, and the number of external links and list items counted from the raw HTML.
 Raw comments at or after the cutoff are expected to be dropped.
+
+**What this checks, in plain words.** M2 turns Wikipedia's raw thread data into a simpler list of turns. Here 1,000 random
+questions are taken and their turns are compared one by one with the raw data, to make sure nothing was lost, added, or
+changed in that step.
 """),
 code(r'''
 _dt_cache = {}
@@ -421,13 +542,18 @@ def raw_thread(r):
 def html_text(h): return re.sub(r"\s+", " ", _html.unescape(re.sub(r"<[^>]+>", " ", h or ""))).strip()
 
 bulk = pick(q[q.thread_origin.isin(["cutoff", "fallback"]) & (q.n_turns > 0)], N_BULK, SEED)
+first_ids = {v[0]["comment_id"] for v in turns.values() if v}   # first comment of every question
 cnt = Counter(); bulk_bad = []
 for r in bulk.itertuples():
     it, cs = raw_thread(r)
     if it is None: cnt["raw thread not found"] += 1; bulk_bad.append((r.question_revid, "raw thread not found")); continue
     kept = [c for c in cs if not (c.get("timestamp") and c["timestamp"] >= CUTOFF)]
     ts = turns[r.question_revid]
-    if [c["id"] for c in kept] != [t["comment_id"] for t in ts]:
+    ids = [t["comment_id"] for t in ts]
+    if [c["id"] for c in kept][:len(ids)] == ids and len(kept) > len(ids) and kept[len(ids)]["id"] in first_ids:
+        cnt["thread split at a later question (ok)"] += 1        # the rest of the section is another tagged question
+        kept = kept[:len(ids)]
+    if [c["id"] for c in kept] != ids:
         cnt["turn list differs"] += 1; bulk_bad.append((r.question_revid, "turn list differs")); continue
     for c, t in zip(kept, ts):
         lk = t["links"] or {}
@@ -447,11 +573,19 @@ if bulk_bad: print("MISMATCH examples:", bulk_bad[:10])
 ck.report()
 '''),
 md("""
+**What the output shows.** All 1,000 sampled questions (2,257 turns) match the raw data exactly: same comments, authors,
+times, reply depths and link counts. In 2 cases the raw section continued with a second tagged question from the same
+newcomer; the turns correctly stop where the next question starts. Summary line: 58 of 58 automatic checks passed.
+"""),
+md("""
 ## 4. Comparison with eval2 (I-34)
 
 eval2 split turns with its own signature regex, and its data were downloaded on 2026-06-12, so it includes turns after
 the cutoff. The new version uses DiscussionTools and stops at 2026-04-20T14:00:00Z. Questions are aligned by revid to
 see where the reply status changes.
+
+**What this checks, in plain words.** eval2 was the earlier version of this data. Comparing the two shows how much the
+reply status changed with the better method, and in which direction. Large unexplained changes would be a warning sign.
 """),
 code(r'''
 both = q[q.eval_has_any_reply.notna() & q.has_any_reply.notna()]
@@ -464,6 +598,12 @@ if len(ch):
     print("direction of the change:", ch.groupby(["eval2", "new"]).size().to_dict())
     print("role of the new first replier (eval2 no reply -> new has a reply):", ch[ch.new == True].role.value_counts().to_dict())   # noqa: E712
 '''),
+md("""
+**What the output shows.** For 42,212 questions present in both versions, 39,133 (93%) have the same reply status. 2,788
+questions had "no reply" in eval2 but have a reply now; in 2,589 of them the new replier is the page's own mentor. The
+usual reason is that eval2's signature search missed replies that DiscussionTools finds (for example in archives or with
+unusual signatures). Only 291 go the other way. So the new version mainly finds replies the old one missed.
+"""),
 code(r'''
 # eval2 has a reply but the new version does not: the usual reason is that the reply is after the cutoff.
 lost = both[(both.eval_has_any_reply == True) & (both.has_any_reply == False)]   # noqa: E712
@@ -480,6 +620,13 @@ for x in pick(gain, N_RANDOM, SEED).itertuples() if len(gain) else []:
     print(f"  {x.revid} {oldid(x.revid)}  new first replier {r.first_replier_name} ({r.first_replier_role}) at {r.first_reply_ts} on {r.thread_page} [{r.thread_origin}]")
 '''),
 md("""
+**What the output shows.** Of the 291 questions that lost a reply, 40 lost it because eval2's reply came after the cutoff
+(correctly excluded now). In most of the rest, eval2's "reply" was in the same minute as the question and was in fact the
+newcomer's own signature under a slightly different name (for example a question by `AlisonIUOELocal302` whose eval2
+"replier" was `IUOELocal302`); the new version correctly treats these as the newcomer, not a reply. The five examples at the
+bottom are replies the new version found; they are on archive pages or recovered deleted sections, which eval2 did not read.
+"""),
+md("""
 ## 5. Tracer samples and random samples
 
 `show_question(revid)` prints, for one question:
@@ -488,6 +635,9 @@ md("""
 2. the raw DiscussionTools thread (thread key, heading, each raw comment with author, time, level and text) next to the processed
    turn (author, signer uid, role) and **why** that role was given;
 3. a table "recomputed vs stored" for the reply fields and other derived fields, and the match score recomputed from the raw thread.
+
+This lets a reader look at a question exactly as it appears on Wikipedia and see that each label is sensible. The next
+cell only defines this display function and prints nothing.
 """),
 code(r'''
 def _flags(r): return list(r.parse_flags)
@@ -551,6 +701,8 @@ md("""
 
 Questions in the locked tracer list (away notice, revision deleted, wrong section, alt-account reply, signature subpage,
 third-party reply) and every question of the tracer newcomers. Shown in short form (no texts).
+
+**What this checks.** Known hard cases, fixed in advance, so the same examples can be followed in every module.
 """),
 code(r'''
 tr = tracer_frame()
@@ -560,9 +712,17 @@ tracer_ok = [show_question(rv, full=False) for rv in dict.fromkeys(sample_revids
 print(f"\ntracer questions where every recomputed field matches: {sum(tracer_ok)} of {len(tracer_ok)}")
 '''),
 md("""
+**What the output shows.** All 26 tracer questions match on every recomputed field. The tables show, turn by turn, the raw
+author and time next to the stored role and the reason for it (for example "uid ... == page_mentor_uid" means the signer is
+the owner of the talk page). Note the first example: the account is `AlphaBetaGamma` but it signed as `AlphaBetaGammsh`;
+it is still correctly labelled as the newcomer because that name appears as the asker in the section heading.
+"""),
+md("""
 ### 5.R Random questions in full
 
 Groups: any question; questions with a reply; questions without a reply (thread found); and one group per first replier role.
+
+**What this checks.** Typical cases drawn at random (5 per group), shown in full with the raw text next to the cleaned text.
 """),
 code(r'''
 groups = {"any question": q, "with a reply": q[q.has_any_reply == True],          # noqa: E712
@@ -576,10 +736,18 @@ for label, g in groups.items():
 print(f"\nrandom questions where every recomputed field matches: {sum(rand_ok)} of {len(rand_ok)}")
 '''),
 md("""
+**What the output shows.** All 30 random questions match on every recomputed field. Group sizes in this run: 31,153 questions
+with a reply and 11,067 without (thread found); first repliers are the page mentor in 29,289 cases, another mentor in 657 and
+someone else (third party) in 1,207. So almost all replies come from the assigned mentor.
+"""),
+md("""
 ### 5.M Talk page moved after the question (I-45)
 
 `page_eval` is the title today. If the page was moved later, `page_title_at_q` follows the move log backwards.
 For random moved pages: the move log entries for that page next to the stored title and owner.
+
+**What this checks.** If a mentor renamed their account after the question, today's page title points to the new name.
+The mentor must be identified by the page title at the time of the question, or the question could be linked to the wrong mentor.
 """),
 code(r'''
 moved = q[q.page_eval != q.page_title_at_q]
@@ -594,7 +762,17 @@ for r in pick(moved, N_RANDOM, SEED).itertuples():
     compare({"page_title_at_q": title_at(r.page_eval, r.q_ts), "page_mentor_uid": owner if owner is not None else r.eval_mentor_uid},
             {"page_title_at_q": r.page_title_at_q, "page_mentor_uid": r.page_mentor_uid})
 '''),
-md("### 5.A Away notice: raw note next to the stored primary mentor"),
+md("""
+**What the output shows.** 1,346 questions are on a talk page that was renamed after the question. For the 5 examples, the
+move log entries (with links) show the rename, and the stored old title and owner match the recomputed ones. Moves that
+happened before the question are correctly ignored.
+"""),
+md("""
+### 5.A Away notice: raw note next to the stored primary mentor
+
+**What this checks.** When a newcomer's own mentor is away, the question goes to a backup mentor and starts with a note
+"X's mentor Y is away". Y is recorded as the primary mentor, so that a reply from Y also counts as a mentor reply.
+"""),
 code(r'''
 away = q[q.away_routed]
 print(f"questions with an away notice: {len(away)}")
@@ -605,6 +783,10 @@ for r in pick(away, N_RANDOM, SEED).itertuples():
             {"primary_mentor_name": r.primary_mentor_name, "primary_mentor_uid": r.primary_mentor_uid, "page_mentor_uid (owner of the page)": r.page_mentor_uid})
 '''),
 md("""
+**What the output shows.** 517 questions (1.2%) carry an away note. In the 5 examples the raw note, the stored primary mentor
+and their user id agree, and the page owner (the backup mentor) is a different person, as expected.
+"""),
+md("""
 ### 5.F Question turn relabelled, and question merged into a reply (I-55)
 
 * `question_turn_relabelled`: the first turn is the question itself but its signature does not match the account
@@ -614,6 +796,9 @@ md("""
 
 For each random example: raw turns and processed turns side by side. For merged questions, compare the raw HTML text of
 the first turn with the stored (cut) text and with the question text.
+
+**What this checks.** Two rare parsing problems: the newcomer signed under another name, or the question had no signature
+and got glued to the first reply. Both could wrongly create or hide a reply.
 """),
 code(r'''
 for flag in ("question_turn_relabelled", "question_merged_into_reply"):
@@ -630,7 +815,17 @@ for flag in ("question_turn_relabelled", "question_merged_into_reply"):
             print(f"   raw first turn starts with the question words: {starts}")
             print(f"   stored reply text no longer contains the question start: {r.question_text[:40].lower() not in (t0['text'] or '').lower()}")
 '''),
-md("### 5.E Entry point: asked while editing a page"),
+md("""
+**What the output shows.** 11 questions have a relabelled first turn (for example the account `KEmel49` signed as
+`~~KEmel49~~`) and 4 had the question merged into the reply. All examples match on every field, and for the 4 merged cases the
+question words were cut off the reply text correctly. These cases are too few to affect the results.
+"""),
+md("""
+### 5.E Entry point: asked while editing a page
+
+**What this checks.** Newcomers can ask from their homepage or from a panel while editing an article. For the second kind
+the heading names the article, which is stored as `article_context`.
+"""),
 code(r'''
 for r in pick(q[q.editing_page], N_RANDOM, SEED).itertuples():
     m = HEAD_PAGE.match(nhead(r.heading))
@@ -638,7 +833,17 @@ for r in pick(q[q.editing_page], N_RANDOM, SEED).itertuples():
 for r in pick(q[~q.editing_page], 3, SEED).itertuples():
     print(f"  not editing: {r.question_revid} tag={r.tag!r} heading={r.heading!r}")
 '''),
-md("### 5.D Question deleted in the next edit: raw edit next to removal_kind"),
+md("""
+**What the output shows.** 7,791 questions were asked while editing a page. The 5 examples all have the panel tag and the
+stored article matches the page named in the heading (only capital letters differ, because headings are stored in lower case).
+The 3 "not editing" examples have the homepage tag and no page in the heading.
+"""),
+md("""
+### 5.D Question deleted in the next edit: raw edit next to removal_kind
+
+**What this checks.** Some questions are deleted right away (often spam, or the newcomer changed their mind). Such a question
+can never get a reply, so later modules may want to exclude it. The reason for the deletion is read from the next edit.
+"""),
 code(r'''
 rem = q[q.removal_kind.notna()]
 print(rem.removal_kind.value_counts().to_string())
@@ -649,13 +854,31 @@ for kind, g in rem.groupby("removal_kind"):
         print(f"     RAW edit: user={e.get('user')!r} userid={e.get('userid')} tags={e.get('tags')} comment={(e.get('comment') or '')[:100]!r}")
         compare({"removal_kind": my_removal(e, r)}, {"removal_kind": r.removal_kind})
 '''),
-md("## 6. Edge cases (every class is written in full to `_issues/`; here are counts and examples)"),
+md("""
+**What the output shows.** 1,078 questions were deleted in the very next edit: 827 reverted (mostly spam or blocked users),
+147 removed by the newcomer, 37 merged into another section, 67 other. The raw edit summaries (for example "revert sock",
+"Combine sections as same editor") agree with the stored reason. One "merged" example is really a page rename by an
+administrator; this label is only descriptive and does not change any reply value.
+"""),
+md("""
+## 6. Edge cases (every class is written in full to `_issues/`; here are counts and examples)
+
+**What this checks.** Counts of each kind of unusual case, with random examples, so a reader can judge whether any of them is
+large enough to matter.
+"""),
 code(r'''
 summ = json.loads((M2 / "_issues" / "summary.json").read_text())
 print(json.dumps({k: v["n"] for k, v in summ.items()}, indent=1))
 flags = q.explode("parse_flags").parse_flags.value_counts()
 print("\nparse_flags:\n" + flags.to_string())
 '''),
+md("""
+**What the output shows.** The largest group is `turn_source_mismatch` (3,322): eval2's signature search and DiscussionTools
+split the thread differently (see the next cells). Then 1,078 questions deleted at once, 96 threads not found, 66 with a
+page owner different from eval2's mentor, 61 with the text hidden by Wikipedia administrators, and smaller groups. The
+summary file counts issue records, so `question_turn_relabelled` shows 22 records for 11 questions, and
+`reply_status_changed` (3,079) equals the 2,788 + 291 changes in section 4.
+"""),
 code(r'''
 for f in ["thread_not_found", "reply_before_question", "first_turn_not_mentee", "ambiguous_thread", "turn_after_cutoff_dropped",
           "page_owner_differs", "unrecoverable_revdel", "primary_mentor_unresolved", "turn_source_mismatch"]:
@@ -666,6 +889,18 @@ for f in ["thread_not_found", "reply_before_question", "first_turn_not_mentee", 
         for t in turns.get(r.question_revid, [])[:4]:
             print(f"       {t['ts']}  {t['role']:<14} {t['author']}")
 '''),
+md("""
+**What the output shows.** Examples of each flag. `reply_before_question` (22): the mentor's comment is older than the question,
+usually an earlier message in the same section, and it is correctly not counted as a reply. `first_turn_not_mentee` (44): the
+question itself has no usable signature, so the first signed turn is the mentor. `turn_after_cutoff_dropped` (43): turns after
+the cutoff were removed, as intended.
+
+**Worth a reviewer's attention: `page_owner_differs` (66).** All 66 are on one mentor's page, `User talk:方志維`, later moved to
+`User talk:楊文祖`. In M1 these two names have different user ids, so they are two accounts (very likely the same person, who
+moved to a new account). Replies signed with the old account count as page mentor replies, but 25 first replies signed with the
+new account before it joined the mentor roster are labelled `third_party`. `has_any_reply` (the main treatment) is still
+correct for them; only the robustness measure `has_mentor_reply` may be too low for these 25 of 42,316 questions (0.06%).
+"""),
 code(r'''
 # turn splitting: eval2's own signature regex versus DiscussionTools, random examples side by side
 p = M2 / "_issues" / "turn_source_mismatch.jsonl"
@@ -680,6 +915,12 @@ if len(mm):
     for r in pick(mm[mm.other_differs], 8, SEED).itertuples():
         print(f"\n  {r.ids['revid']}  {r.wiki_url}\n    regex: {r.detail['regex']}\n    dt   : {r.detail['dt']}")
 '''),
+md("""
+**What the output shows.** In 3,322 questions, eval2's simple signature search and DiscussionTools disagree about the speakers.
+In 3,233 of them the speakers other than the newcomer differ; in the examples DiscussionTools finds a mentor reply
+(for example `I dream of horses`, `Oshwah`) that the old search missed, or reads a temporary account name (`~2026-74940-9`)
+where the old search saw only `&`. This is the main reason the new version finds more replies, and it supports using DiscussionTools.
+"""),
 code(r'''
 # first reply in thread order is not the earliest reply in time (the stored first_reply_ts follows thread order)
 order = []
@@ -690,6 +931,11 @@ for r in q[q.has_any_reply == True].itertuples():   # noqa: E712
 print(f"questions where the first reply in thread order is later than another reply: {len(order)}")
 display(pd.DataFrame(order, columns=["revid", "first_reply_ts (stored, thread order)", "earliest reply ts", "first replier", "link"]).head(25))
 '''),
+md("""
+**What the output shows.** In 17 questions the first reply in the thread is not the earliest reply in time (someone added
+a reply higher up in the thread later, or a comment's time stamp is odd). The stored first reply time follows thread order,
+so for these 17 the clock may start up to a few days later than the earliest reply. This is 0.05% of the replied questions, too few to change results.
+"""),
 code(r'''
 # article_context (from the heading HTML link) versus the page named in the heading text
 x = q[q.editing_page].copy()
@@ -701,6 +947,11 @@ for r in d.head(15).itertuples():
     links = re.findall(r'title="([^"]+)"', (it or {}).get("html", ""))[:3]
     print(f"  {r.question_revid}: heading page {r.page_in_heading!r} -> stored {r.article_context!r}   raw heading HTML links: {links}")
 '''),
+md("""
+**What the output shows.** Only 6 of 7,791 editing questions name a different page in the heading text than in the heading's
+link. The stored value follows the link (the raw links are printed), which is the page the newcomer was really on, for
+example after a rename such as `Ludwig (TV series)` to `Ludwig (2024 TV series)`.
+"""),
 code(r'''
 # leftover wiki markup in the cleaned question text (worth a look; usually markup inside <nowiki> or broken templates)
 w = q[q.question_text_source == "wikitext"]
@@ -714,7 +965,17 @@ fbq = q[q.thread_origin == "fallback"]
 other = fbq[fbq.apply(lambda r: fb_map.get(str(r.question_revid), {}).get("revid") != r.thread_revid, axis=1)]
 print(f"\nfallback threads taken from a revision recovered for another question: {len(other)} of {len(fbq)}")
 '''),
-md("## 7. Distributions: questions per month and reply rate (there should be nothing after the cutoff)"),
+md("""
+**What the output shows.** A small number of cleaned question texts still contain wiki markup: 52 with `{{`, 13 with `[[`, 6
+with `(UTC)`, 45 with an HTML tag, out of 42,316. The examples show why: the newcomer was asking about markup itself (for example
+"What does <ref> do?") or pasted code, so the markup is part of the real question. 22 of 1,325 recovered threads came from a
+revision recovered for another question on the same page, which is fine because both questions were in that revision.
+"""),
+md("""
+## 7. Distributions: questions per month and reply rate (there should be nothing after the cutoff)
+
+**What this checks.** Simple totals over time, to spot gaps, sudden jumps, or data after the cutoff.
+"""),
 code(r'''
 m = q.assign(month=pd.to_datetime(q.q_ts, utc=True).dt.strftime("%Y-%m")).groupby("month").agg(
     questions=("question_revid", "size"), reply_rate=("has_any_reply", "mean"), mentor_reply_rate=("has_mentor_reply", "mean"))
@@ -725,7 +986,19 @@ lag = (pd.to_datetime(q.first_reply_ts, utc=True) - qts).dt.total_seconds() / 36
 print("hours from question to first reply:\n" + lag.describe(percentiles=[.25, .5, .75, .9]).round(2).to_string())
 print("\nturns per thread:\n" + q[found].n_turns.value_counts().sort_index().head(12).to_string())
 '''),
-md("## 8. Summary (written to results/m2_report.json, read by M9)"),
+md("""
+**What the output shows.** The last months have about 1,400 to 1,700 questions each, with reply rates of 74% to 80%. April 2026
+has only 863 questions because the data stop on 20 April. Its reply rate (73.8%) is close to earlier months, although its newest
+questions had little time to get an answer. Half of the first replies arrive within 5.5 hours, and 90% within about 3 days. The
+smallest value, -0.01 hours, is not a reply before the question: reply times are known only to the minute, so a reply in the same
+minute can look a few seconds early. Most threads have 2 turns (question and one reply); 18 found threads have 0 turns (no signed
+comment could be read; all 18 are also flagged `turn_source_mismatch` and 10 were deleted at once).
+"""),
+md("""
+## 8. Summary (written to results/m2_report.json, read by M9)
+
+**What this does.** Writes the key counts to a small file that the final report reads, and prints the overall check tally.
+"""),
 code(r'''
 report = {"n_questions": len(q), "n_topup": int((q.source == "topup").sum()),
           "thread_found_rate": round(float(q.thread_page.notna().mean()), 4),
@@ -739,6 +1012,13 @@ print(json.dumps(report, indent=1))
 print(f"\nchecks passed: {sum(ok for _, ok in ck.items)} / {len(ck.items)}; "
       f"tracer and random questions fully matching: {sum(tracer_ok) + sum(rand_ok)} / {len(tracer_ok) + len(rand_ok)}")
 '''),
+md("""
+**What the output shows.** In the run on the final data (cutoff 2026-04-20T14:00Z): 42,316 questions (8 from the top-up), a thread found for 99.77%, any reply for
+73.8% and a mentor reply for 70.5% (both rates are out of the 42,220 questions with a thread; the 96 without one have no reply value).
+517 questions went to a backup mentor and 7,791 were asked while editing. All 58 automatic checks passed, and all 65 tracer
+and random questions shown matched on every field. The one item worth a reviewer's note is the 25 replies by a mentor's new
+account labelled third party (section 6), which affects only the mentor-reply robustness measure.
+"""),
 ]
 
 

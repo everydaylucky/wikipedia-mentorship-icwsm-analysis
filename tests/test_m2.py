@@ -230,3 +230,18 @@ def test_away_note_until():
          "is away until October 2026.''\nHi, asking you for a review")
     text, note = strip_away_note(t)
     assert text == "Hi, asking you for a review" and note.primary_mentor == "Sunny Cryolite"
+
+
+def test_question_from_diff():
+    from pipeline.m2_conversations.question_diffs import question_from_diff
+    row = lambda kind, text="": {  # noqa: E731
+        "ctx": f'<tr><td class="diff-marker"></td><td class="diff-context diff-side-added"><div>{text}</div></td></tr>',
+        "add": f'<tr><td colspan="2" class="diff-empty"></td><td class="diff-marker" data-marker="+"></td>'
+               f'<td class="diff-addedline diff-side-added"><div>{text}</div></td></tr>',
+        "no": '<tr><td colspan="2" class="diff-lineno">Line 9:</td></tr>'}[kind]
+    body = "".join([row("ctx", "old reply"), row("add", ""), row("add", "== Question from [[User:A|A]] (1:00, 1 May 2024) =="),
+                    row("add", "== My own heading =="), row("add", "How do I cite? --[[User:A|A]] 1:00"),
+                    row("ctx", "later section"), row("add", "unrelated line")])
+    r = question_from_diff(body)
+    assert r["heading_found"] and r["text"] == "== My own heading ==\nHow do I cite? --[[User:A|A]] 1:00"
+    assert question_from_diff(row("ctx", "x")) is None
