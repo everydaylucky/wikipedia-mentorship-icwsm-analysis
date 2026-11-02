@@ -93,8 +93,11 @@ The annotation files are small and are kept in this repository (`data/annotation
    python run_all.py --from m7
    ```
 
-   M7 rebuilds `data/analytic/` from the released outputs of M1 to M6; the rebuilt files are identical to the
-   released ones. To start from the released `data/analytic/` instead, use `--from m8`. Then
+   M7 rebuilds `data/analytic/` from the released outputs of M1 to M6. The 20 principal components of the text
+   embeddings can differ between machines by up to about 1e-5 (floating-point order in the PCA), which can move a
+   few newcomers across propensity-score strata and change the last digit of some estimates. To reproduce the
+   paper's numbers exactly, start from the released `data/analytic/` (made on the machine that produced the paper's
+   results) with `--from m8`, and set `OMP_NUM_THREADS=OPENBLAS_NUM_THREADS=MKL_NUM_THREADS=1`. Then
    `python run_all.py --legacy` replicates the paper's first analysis version and fills the number check
    (`results/paper_check.md`). Its comparison with the original result tables (`results/m8_legacy/parity_summary.csv`)
    reads those tables from the authors' earlier repository, so outside that machine it reports `missing_old`.
