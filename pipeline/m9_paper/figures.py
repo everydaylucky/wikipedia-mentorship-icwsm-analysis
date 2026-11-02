@@ -70,7 +70,8 @@ def fig_ps(log) -> None:
 
 
 def fig_love() -> None:
-    b = pd.read_csv(M8 / "A4_covariate_balance.csv")
+    # ATT weights (w_k = n_1k / n_1, as the ATT; I-35), max 0.027; A4 uses the paper version's stratum-size weights (0.030)
+    b = pd.read_csv(M8 / "balance_att_weighting.csv")
     b["raw_abs"], b["strat_abs"] = b.raw.abs(), b.strat.abs()
     top = b.sort_values("raw_abs", ascending=False).head(20).iloc[::-1].copy()
     # readable names: embedding components numbered from 1 as in the covariate table, politeness markers shortened
