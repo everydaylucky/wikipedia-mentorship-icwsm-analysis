@@ -145,6 +145,8 @@ python -m pipeline.m8_analysis.quality                                    # edit
 python -m pipeline.m8_analysis.ps_models                                  # propensity model comparison: C grid, random forest, gradient boosting
 python -m pipeline.m8_analysis.mentor_side                                # mentor-side checks: balance by the mentor's reply rate, negative control
 python -m pipeline.m8_analysis.editor_kinds                               # editing levels reached and main type of later editing (after followup)
+python -m pipeline.m8_analysis.anchor_checks                              # control window start: lag by stratum, reply timing, landmarks, within-stratum draws
+python -m pipeline.m8_analysis.paper_counts                               # sample construction, question-type shares, who replied first, covariate blocks
 python -m pipeline.m9_paper.compare_new
 python -m pipeline.m9_paper.figures                                       # paper figures (results/figures/, copied to the LaTeX folder)
 ```
