@@ -791,6 +791,78 @@ rose from 1.2 to 1.9 in July 2023, from 2.6 to 5.0 in October 2023 and from 4.3 
 2025, the months in which the visible share rose.
 """),
 md("""
+### 7.10 Mentor-side checks (paper identification item 3, Appendix "Mentor-side variables")
+`mentor_side.py`. The main PS model leaves out the mentor's reply habits. That is justified if (a) which mentor a
+newcomer got is unrelated to the newcomer, and (b) the mentor affects editing only through the reply. The mentor
+variable is the assigned mentor's past reply rate at the question (`m_prior_reply_rate`), used when the mentor had at
+least 5 earlier questions; within each question month mentors are split into thirds.
+(a) Top vs bottom third: actual reply share, and the month-adjusted SMD of the 105 covariates (the 164 without the
+59 year-month indicators), among all askers and among newcomers without a reply.
+(b) Negative control: among newcomers without a reply, the slope of the primary outcome on the mentor's past reply
+rate (per 10 points), adjusted for the 105 covariates and question month (main), and the exploratory version within
+PS stratum x month.
+
+**What this checks.** The thirds, the reply shares, the largest SMDs and both slopes are recomputed here with
+separate code (pandas ranks, statsmodels OLS, the strata of section 5.1) and compared with
+`results/m8/mentor_side_summary.csv`. The bootstrap intervals are not recomputed; the checks confirm that each
+interval contains its estimate and that B = 500.
+"""),
+code(r'''
+import statsmodels.api as sm
+MSS = pd.read_csv(config.RESULTS / "m8" / "mentor_side_summary.csv").set_index("name")["value"]
+Mf = pd.DataFrame(D["X_M"], columns=[str(c) for c in D["M_cols"]])
+mon = pd.Series(D["q_year_month"]).astype(str).to_numpy()
+ok5 = (Mf.m_prior_mentee_count >= 5).to_numpy()
+rr = Mf.m_prior_reply_rate.to_numpy()
+pr = pd.Series(np.nan, index=range(len(d)))
+pr[ok5] = pd.DataFrame({"r": rr[ok5], "m": mon[ok5]}).groupby("m")["r"].rank(pct=True).to_numpy()
+top, bot = (pr > 2 / 3).to_numpy(), (pr <= 1 / 3).to_numpy()
+cols = [i for i, n in enumerate(NAMES) if not n.startswith("ym_")]
+
+def largest_smd(rows):
+    """Largest |SMD| top vs bottom over the 105 covariates, after removing month means within `rows`."""
+    sub = pd.DataFrame(X[rows][:, cols]); m_ = mon[rows]; h = top[rows]
+    dev = sub - sub.groupby(m_).transform("mean")
+    sd = np.sqrt((sub[h].var(ddof=0) + sub[~h].var(ddof=0)) / 2)
+    smd = (dev[h].mean() - dev[~h].mean()) / sd.replace(0, np.nan)
+    return float(smd.abs().max())
+
+two = top | bot
+dmon = d - pd.Series(d).groupby(mon).transform("mean").to_numpy()
+mine = {"n_covariates": len(cols), "n_bottom": int(bot.sum()), "n_top": int(top.sum()),
+        "reply_share_bottom": d[bot].mean(), "reply_share_top": d[top].mean(),
+        "reply_share_gap_within_month": dmon[top].mean() - dmon[bot].mean(),
+        "max_abs_smd_askers": largest_smd(two), "max_abs_smd_no_reply": largest_smd(two & (d == 0))}
+c = (d == 0) & ok5
+yy = D["oc_primary"].astype(float)[c]
+Xa = X[c][:, cols]; Xa = Xa[:, Xa.std(axis=0) > 0]
+Zm = pd.get_dummies(pd.Series(mon[c]), drop_first=True, dtype=float).to_numpy()
+fit = sm.OLS(yy, np.column_stack([rr[c] * 10, Xa, Zm, np.ones(c.sum())])).fit()
+mine["nc_adj_slope_per_10pt"] = float(fit.params[0])
+cell = pd.Series(stratum[c]).astype(str) + "|" + pd.Series(mon[c])
+yd = yy - pd.Series(yy).groupby(cell).transform("mean").to_numpy()
+rd = rr[c] * 10 - pd.Series(rr[c] * 10).groupby(cell).transform("mean").to_numpy()
+mine["nc_strata_slope_per_10pt"] = float((yd * rd).sum() / (rd * rd).sum())
+okm = compare(mine, {k: MSS[k] for k in mine}, title="mentor-side checks: recomputed vs mentor_side.py")
+ck.add("mentor-side: thirds, reply shares, largest SMDs and both negative-control slopes recomputed independently", okm)
+ck.add("mentor-side: B = 500 and each negative-control interval contains its estimate",
+       MSS["nc_B"] == 500 and MSS["nc_adj_CI_lo"] <= MSS["nc_adj_slope_per_10pt"] <= MSS["nc_adj_CI_hi"]
+       and MSS["nc_strata_CI_lo"] <= MSS["nc_strata_slope_per_10pt"] <= MSS["nc_strata_CI_hi"])
+print(f"\nnegative control, adjusted: {MSS['nc_adj_slope_per_10pt'] * 100:+.2f} pp per 10 points "
+      f"[{MSS['nc_adj_CI_lo'] * 100:+.2f}, {MSS['nc_adj_CI_hi'] * 100:+.2f}]; bottom to top third "
+      f"{MSS['nc_adj_implied_bottom_to_top'] * 100:+.2f} pp [{MSS['nc_adj_implied_CI_lo'] * 100:+.2f}, {MSS['nc_adj_implied_CI_hi'] * 100:+.2f}]")
+'''),
+md("""
+**What the output shows.** All recomputed numbers equal the module's. Top-third mentors' askers got a reply 92.7% of
+the time and bottom-third mentors' askers 55.5% (37 points apart within month), yet the two groups of askers have the
+same measured traits (largest |SMD| 0.038, none above 0.1). Among newcomers without a reply the groups differ (largest
+|SMD| 0.41, on whether the question was substantive): responsive mentors leave mostly empty questions unanswered.
+That is why the main negative control adjusts for the covariates. Adjusted, the mentor's past reply rate is not
+related to the non-replied newcomers' editing: -0.11 points per 10 points (95% CI -0.47 to +0.22); from a
+bottom-third to a top-third mentor, -0.46 points (-1.92 to +0.88), so an effect of the mentor outside the reply as
+large as the ATT (+1.84) is ruled out. The stratum x month version gives -0.05 (-0.54 to +0.35).
+"""),
+md("""
 ## 8. Summary (written to results/m8_report.json)
 
 **What this checks.** All checks in one list, plus the main numbers saved to a small file for later modules.
@@ -809,7 +881,7 @@ print(f"\nMain result: a reply raises the chance of at least one article edit in
       f"(95% CI {b0.CI_lo * 100:.2f} to {b0.CI_hi * 100:.2f}); the unadjusted difference is {b0.Naive * 100:.2f} points.")
 '''),
 md("""
-**What the output shows.** All 27 checks pass. In the run on the final data (cutoff 2026-04-20T14:00Z), a reply from the mentor raises the
+**What the output shows.** All 29 checks pass. In the run on the final data (cutoff 2026-04-20T14:00Z), a reply from the mentor raises the
 chance of at least one article edit in the next 14 days by 1.84 percentage points (95% CI 0.62 to 2.99), from a
 base of 17.5% among non-replied newcomers (a relative increase of about 10%). The raw difference is 4.62 points;
 the rest is explained by replied newcomers already being more active. The full bootstrap in

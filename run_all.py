@@ -55,6 +55,7 @@ STAGES: list[tuple[str, str, str]] = [
     ("m8_quality", "pipeline.m8_analysis.quality", "Edit quality"),
     ("m8_full_bootstrap", "pipeline.m8_analysis.full_bootstrap", "Full bootstrap"),
     ("m8_ps_models", "pipeline.m8_analysis.ps_models", "Propensity model comparison"),
+    ("m8_mentor_side", "pipeline.m8_analysis.mentor_side", "Mentor-side checks"),
     ("m9_figures", "pipeline.m9_paper.figures", "Paper figures"),
     ("m9", "pipeline.m9_paper.check_numbers", "Paper number check"),
 ]

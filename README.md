@@ -140,6 +140,7 @@ python -m pipeline.m8_analysis.followup                                   # late
 python -m pipeline.m8_analysis.descriptive                                # long-term trajectories, conversation depth, mentor pool by month
 python -m pipeline.m8_analysis.quality                                    # edit quality (48-hour reverts by other editors)
 python -m pipeline.m8_analysis.ps_models                                  # propensity model comparison: C grid, random forest, gradient boosting
+python -m pipeline.m8_analysis.mentor_side                                # mentor-side checks: balance by the mentor's reply rate, negative control
 python -m pipeline.m9_paper.compare_new
 python -m pipeline.m9_paper.figures                                       # paper figures (results/figures/, copied to the LaTeX folder)
 ```
