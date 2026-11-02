@@ -39,7 +39,7 @@ plt.rcParams.update({"font.size": 10, "axes.titlesize": 11, "savefig.dpi": 200, 
 OUTCOME_LABELS = {
     "1+_mainspace_edit_14d": "1+ article edit (14d)", "n_mainspace_edits_14d": "N article edits (14d)",
     "active_days_30d": "Active days (30d)", "unique_namespace_14d": "Unique namespaces (14d)",
-    "reverted_any_14d": "Any edit reverted (14d)", "2+_active_days_14d": "2+ active days (14d)"}
+    "reverted_any_14d": "Any edit reverted (14d)", "2+_active_days_14d": "2+ article-edit days (14d)"}
 SG_ORDER = ["Technical", "Referent (Q2)", "Appraisal (Q3)", "Normative (Q4)", "Non-substantive",
             "Own work (Q5=Y)", "No own work (Q5=N)"]
 
@@ -211,7 +211,7 @@ def fig_heatmap() -> None:
             ax.text(j, i, (f"{a:+.3f}" if abs(a) < 0.1 else f"{a:+.2f}") + ("*" if sig.iat[i, j] else ""),
                     ha="center", va="center", fontsize=8)
     ax.set_xticks(range(len(cols)), ["1+ edit\n14d", "N edits\n14d", "Active days\n30d", "Unique NS\n14d",
-                                     "Reverted\n14d", "2+ active\ndays 14d"])
+                                     "Reverted\n14d", "2+ article-\nedit days 14d"])
     ax.set_yticks(range(len(SG_ORDER)), SG_ORDER)
     fig.colorbar(im, ax=ax, shrink=.8, label="Cohen's d (cell text: ATT)")
     ax.set_title("Within-subgroup ATT by question type and outcome (* = 95% CI excludes zero)")
