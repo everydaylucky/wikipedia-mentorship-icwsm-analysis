@@ -160,6 +160,8 @@ EXTERNAL: dict[str, Path] = {
     "setmentor_log_partial":     INPUT / "validation/manual_claims_log.jsonl",
     # Paper source text, used only by tools/build_paper_numbers.py (not released)
     "paper_md":                  WIKI_BASE / "2026-9/2026-9-24/paper.md",
+    #: camera-ready LaTeX source (not in this repository; pass --tex to check_camera_ready to use another copy)
+    "camera_ready_tex":          Path("/gpfs/accounts/cbudak_root/cbudak0/yubozhou/wikipedia_2sls/icwsm_2027_paper/CameraReady/LaTeX/camera_ready.tex"),
 }
 
 #: Raw data already saved under data/raw/ in this repo (newly collected in 2026-10).
