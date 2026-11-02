@@ -149,6 +149,7 @@ python -m pipeline.m8_analysis.anchor_checks                              # cont
 python -m pipeline.m8_analysis.paper_counts                               # sample construction, question-type shares, who replied first, covariate blocks
 python -m pipeline.m9_paper.compare_new
 python -m pipeline.m9_paper.figures                                       # paper figures (results/figures/, copied to the LaTeX folder)
+python -m pipeline.m9_paper.check_camera_ready --tex camera_ready.tex     # every number in the camera-ready paper vs results/ (results/paper_check_camera_ready.md)
 ```
 
 After the online steps have run once, the whole offline chain can be rerun with:

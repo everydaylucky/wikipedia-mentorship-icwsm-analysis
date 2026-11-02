@@ -61,6 +61,7 @@ STAGES: list[tuple[str, str, str]] = [
     ("m8_paper_counts", "pipeline.m8_analysis.paper_counts", "Counts quoted in the paper"),
     ("m9_figures", "pipeline.m9_paper.figures", "Paper figures"),
     ("m9", "pipeline.m9_paper.check_numbers", "Paper number check"),
+    ("m9_camera_ready", "pipeline.m9_paper.check_camera_ready", "Camera-ready number check"),
 ]
 LEGACY_STAGES: list[tuple[str, str, str]] = [
     ("m8_legacy", "pipeline.m8_analysis.legacy_parity", "Paper replication"),
